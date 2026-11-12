@@ -1,0 +1,88 @@
+{
+  "version": 1,
+  "items": {
+    "floor": {
+      "label": "Floor",
+      "size": { "w": 1, "h": 1 },
+      "tasks": [
+        { "name": "Vacuum", "intervalDays": 7 },
+        { "name": "Mop", "intervalDays": 14 }
+      ]
+    },
+    "bed": {
+      "label": "Bed",
+      "size": { "w": 2, "h": 2 },
+      "tasks": [
+        { "name": "Wash sheets", "intervalDays": 7 },
+        { "name": "Rotate mattress", "intervalDays": 90 }
+      ]
+    },
+    "sofa": {
+      "label": "Sofa",
+      "size": { "w": 2, "h": 1 },
+      "tasks": [{ "name": "Vacuum cushions", "intervalDays": 30 }]
+    },
+    "toilet": {
+      "label": "Toilet",
+      "size": { "w": 1, "h": 1 },
+      "tasks": [{ "name": "Clean toilet", "intervalDays": 7 }]
+    },
+    "shower": {
+      "label": "Shower",
+      "size": { "w": 1, "h": 1 },
+      "tasks": [
+        { "name": "Scrub shower", "intervalDays": 14 },
+        { "name": "Descale showerhead", "intervalDays": 180 }
+      ]
+    },
+    "sink": {
+      "label": "Sink",
+      "size": { "w": 1, "h": 1 },
+      "tasks": [{ "name": "Clean sink", "intervalDays": 7 }]
+    },
+    "stove": {
+      "label": "Stove",
+      "size": { "w": 1, "h": 1 },
+      "tasks": [
+        { "name": "Wipe stovetop", "intervalDays": 3 },
+        { "name": "Clean range hood filter", "intervalDays": 90 }
+      ]
+    },
+    "fridge": {
+      "label": "Fridge",
+      "size": { "w": 1, "h": 1 },
+      "tasks": [
+        { "name": "Clear out old food", "intervalDays": 7 },
+        { "name": "Vacuum coils", "intervalDays": 180 }
+      ]
+    },
+    "washing-machine": {
+      "label": "Washing machine",
+      "size": { "w": 1, "h": 1 },
+      "tasks": [{ "name": "Run cleaning cycle", "intervalDays": 30 }]
+    },
+    "plant": {
+      "label": "Plant",
+      "size": { "w": 1, "h": 1 },
+      "tasks": [{ "name": "Water", "intervalDays": 7 }]
+    },
+    "hvac-filter": {
+      "label": "HVAC filter",
+      "size": { "w": 1, "h": 1 },
+      "tasks": [{ "name": "Replace filter", "intervalDays": 90 }]
+    },
+    "smoke-detector": {
+      "label": "Smoke detector",
+      "size": { "w": 1, "h": 1 },
+      "tasks": [
+        { "name": "Test alarm", "intervalDays": 30 },
+        { "name": "Replace battery", "intervalDays": 365 }
+      ]
+    },
+    "water-heater": {
+      "label": "Water heater",
+      "size": { "w": 1, "h": 1 },
+      "tasks": [{ "name": "Flush tank", "intervalDays": 365 }]
+    }
+  }
+}
