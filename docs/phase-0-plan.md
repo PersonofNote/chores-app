@@ -36,14 +36,26 @@ UI: plain TypeScript + hand-written SVG throughout, no framework (decided 2026-1
 - [x] 3.7 Shared runtime validators (`domain/validate.ts`), used by the library, backups and later sync
 - [x] 3.8 `requestPersistentStorage()` helper (wired up in M4 with the app shell)
 
-## M4. Grid map rendering (UI-framework decision needed here)
+## M4. Grid map rendering
 - [x] 4.1 Decided: plain TS + SVG throughout
-- [ ] 4.2 Map geometry: grid ↔ pixel transforms, room cell rectangles, item footprints and rotation
-- [ ] 4.3 SVG layer stack: floor, walls, items, decay, effects, UI (`render/layers`)
-- [ ] 4.4 Skin registry: `renderItem(item)` selected by `item.skin`, with an icon skin
-- [ ] 4.5 Decay rendering: OKLCH gradient (neutral → amber → red over pressure 0.8 to 1.75), heavier stroke from Overdue on
-- [ ] 4.6 Floor tint per room from the implicit floor item
-- [ ] 4.7 Pan + pinch-zoom; tap targets of at least 44px
+- [x] 4.2 Geometry (pure): grid → user units, item footprints with rotation, room wall outline
+  from the union of its rectangles (so L-shapes get one outline), bounds
+- [x] 4.3 Decay style (pure): OKLCH ramp neutral → amber → red over the `DecayConfig`
+  thresholds, heavier stroke from Overdue on, light/dark palettes, floor tint
+- [x] 4.4 Viewport math (pure): fit to bounds, zoom about a point, pan, screen ↔ content
+- [x] 4.5 SVG helper + skin registry: resolve `item.skin` → `<type>.icon` → placeholder skin.
+  Skins draw with `currentColor` and `--item-stroke`, so decay never touches skin code
+- [x] 4.6 `MapView`: builds the layer stack once (`setHouse`), then applies decay in place
+  (`setStatus`) so M6 animations have stable nodes; hit targets at least 44 CSS px
+- [x] 4.7 Viewport controller: pointer-event pan, pinch-zoom, wheel/trackpad zoom
+- [x] 4.8 App shell: styles + dark mode, load the house, refresh decay periodically and on
+  focus, request persistent storage; dev-only demo house when the database is empty
+- [x] 4.9 Tests: pure modules in node; `MapView` under `happy-dom` (dev-only)
+- [x] 4.10 Visual check: `npm run screenshot -- <url> <out.png> [light|dark]` (headless Chrome via CDP)
+
+Known follow-ups found in M4:
+- Room labels sit in the top-left corner and can overlap items there (they have a halo for now).
+  Revisit placement in M7, when the editor knows where items are.
 
 ## M5. Icons
 - [ ] 5.1 Vendor about 10 MIT SVGs (Tabler or Lucide) into `src/render/icons/` with a LICENSE note
@@ -80,6 +92,13 @@ UI: plain TypeScript + hand-written SVG throughout, no framework (decided 2026-1
   touches the log; orphaned events stay in backups as history.
 - **Duplicate event ids are a no-op on append** (first write wins), so re-imports and merges
   are idempotent and an event can never be rewritten.
+- **Decay reaches skins through CSS custom properties** (`--decay-color`, `--item-stroke`) on
+  the item group. Skins stroke with `currentColor`, so new art never handles decay.
+- **The `decay` layer exists but is empty in the MVP.** Color lives on the item; the layer is
+  reserved for sprite overlays so adding them later doesn't reorder the stack.
+- **The floor item is never drawn.** Items of type `floor` only drive their room's tint.
+- **Dev builds seed a demo house** into an empty database (`src/dev/demo-house.ts`, excluded
+  from production builds). Clear site data in the browser to reset it.
 - **Import only merges.** Entities are upserted (the file wins), events are unioned. There's no
   "replace" mode; restoring into a fresh install is the same operation.
 - **Stage thresholds live in `DecayConfig`** so Phase 0 tuning is a config change.

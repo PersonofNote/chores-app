@@ -48,6 +48,19 @@ export function parseLibrary(json: unknown): Library {
 
 export const defaultLibrary: Library = parseLibrary(defaultLibraryJson)
 
+/**
+ * Every room has an implicit floor item covering its empty cells. It isn't drawn as
+ * an object: its decay shows as a tint over the room instead.
+ */
+export const FLOOR_TYPE = 'floor'
+
+export const isFloorItem = (item: { type: string }) => item.type === FLOOR_TYPE
+
+/** Display label for an item type, falling back to the raw type key. */
+export function itemTypeLabel(type: string, library: Library = defaultLibrary): string {
+  return library.items[type]?.label ?? type
+}
+
 /** Creates an item's default tasks from its library type. */
 export function createDefaultTasks(
   itemId: Id,

@@ -6,7 +6,9 @@ Design: `House Decay App — Architecture & Roadmap.md`. Current work: `docs/pha
 
 ## Commands
 - `npm test` / `npm run test:watch`: Vitest
-- `npm run typecheck`, `npm run build`, `npm run dev`
+- `npm run typecheck`, `npm run build`, `npm run dev` (dev seeds a demo house into an empty DB)
+- `npm run screenshot -- http://localhost:5173/ out.png [light|dark]`: headless-Chrome
+  screenshot plus console output, for checking rendering changes
 
 ## Architecture rules
 - `src/domain` is pure TypeScript: no DOM, no IndexedDB, no `Date.now()` or `Math.random()`.
@@ -23,4 +25,7 @@ Design: `House Decay App — Architecture & Roadmap.md`. Current work: `docs/pha
 
 ## Conventions
 - TS strict with `exactOptionalPropertyTypes`: omit optional fields; don't set them to `undefined`.
-- Tests live next to the code as `*.test.ts`. Shared fixtures: `src/domain/test-helpers.ts`.
+- Tests live next to the code as `*.test.ts`. Shared fixtures: `src/domain/test-helpers.ts`,
+  `src/storage/test-fixtures.ts`. DOM tests opt in with `// @vitest-environment happy-dom`.
+- Map styling: skins stroke with `currentColor` and `var(--item-stroke)`; never set decay
+  colors inside a skin.
