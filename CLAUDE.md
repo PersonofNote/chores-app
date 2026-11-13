@@ -27,5 +27,6 @@ Design: `House Decay App — Architecture & Roadmap.md`. Current work: `docs/pha
 - TS strict with `exactOptionalPropertyTypes`: omit optional fields; don't set them to `undefined`.
 - Tests live next to the code as `*.test.ts`. Shared fixtures: `src/domain/test-helpers.ts`,
   `src/storage/test-fixtures.ts`. DOM tests opt in with `// @vitest-environment happy-dom`.
+- Icons are vendored Lucide SVGs in `src/render/icons/lucide/` (see its README to add one).
 - Map styling: skins stroke with `currentColor` and `var(--item-stroke)`; never set decay
   colors inside a skin.

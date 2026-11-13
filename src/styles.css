@@ -58,6 +58,20 @@ html, body {
 
 .item { color: var(--decay-color, var(--wall)); }
 
+.skin-icon .footprint {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: var(--item-stroke);
+  stroke-opacity: 0.28;
+}
+
+.skin-icon .icon {
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
 .item text {
   stroke: none;
   font-weight: 600;

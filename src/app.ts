@@ -4,7 +4,7 @@
  */
 import { computeHouseStatus, systemClock, uuid, type Clock } from './domain'
 import { MapView } from './render/map-view'
-import { SkinRegistry } from './render/skins'
+import { createDefaultSkins } from './render/default-skins'
 import { openIdbRepository, requestPersistentStorage, type HouseData, type Repository } from './storage'
 import { watchPalette } from './ui/theme'
 import { ViewportController } from './ui/viewport'
@@ -24,7 +24,7 @@ export async function startApp(root: HTMLElement, clock: Clock = systemClock): P
     return
   }
 
-  const map = new MapView(new SkinRegistry())
+  const map = new MapView(createDefaultSkins())
   map.setHouse(house)
   root.replaceChildren(map.root)
 

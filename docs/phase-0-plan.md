@@ -58,8 +58,14 @@ Known follow-ups found in M4:
   Revisit placement in M7, when the editor knows where items are.
 
 ## M5. Icons
-- [ ] 5.1 Vendor about 10 MIT SVGs (Tabler or Lucide) into `src/render/icons/` with a LICENSE note
-- [ ] 5.2 Map item types in the library to icons
+- [x] 5.1 Vendor 12 Lucide SVGs (ISC) into `src/render/icons/lucide/` with LICENSE + README.
+  Lucide over Tabler: it covers more item types (toilet, shower, washer, smoke alarm, vent),
+  and one set keeps the line style consistent
+- [x] 5.2 Allowlist parser (`icons/parse.ts`): shapes + geometry attributes only
+- [x] 5.3 Icon skin: icon fitted to the footprint, stroke compensated for scale so line weight
+  equals `--item-stroke`; faint footprint outline so multi-cell items read at their real size
+- [x] 5.4 Map item types to icons; `createDefaultSkins()` wires them into the app
+- [x] 5.5 Tests: parser allowlist, every library type has an existing icon, no unused icon files
 
 ## M6. Completion interaction
 - [ ] 6.1 Hit-testing and gesture recognizer (tap vs. long-press)
