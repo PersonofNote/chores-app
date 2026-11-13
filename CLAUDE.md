@@ -15,7 +15,10 @@ Design: `House Decay App — Architecture & Roadmap.md`. Current work: `docs/pha
   Inject `Clock`, `IdGenerator` and `Random`. Other layers import from `src/domain/index.ts`.
 - The event log is append-only and the source of truth. Never store decay state; derive it
   (`computeHouseStatus`). Undo is a `void` event, never a delete.
-- Layering: `domain` ← `storage` ← `render` / `ui` ← `main.ts`. Nothing imports upward.
+- Layering: `domain` ← `storage` ← `state` ← `render` / `ui` ← `app.ts`. Nothing imports upward;
+  `render` never imports `state` or `ui`.
+- All writes from the UI go through `HouseStore` (`src/state`). React to changes by
+  subscribing; completion animations and sound are wired that way (`ui/feedback.ts`).
 - UI is plain TypeScript + hand-written SVG. No UI framework.
 - Storage goes through `Repository` (`src/storage`). Untrusted data (imports, later sync)
   is validated with `src/domain/validate.ts` before it reaches storage.
@@ -26,7 +29,8 @@ Design: `House Decay App — Architecture & Roadmap.md`. Current work: `docs/pha
 ## Conventions
 - TS strict with `exactOptionalPropertyTypes`: omit optional fields; don't set them to `undefined`.
 - Tests live next to the code as `*.test.ts`. Shared fixtures: `src/domain/test-helpers.ts`,
-  `src/storage/test-fixtures.ts`. DOM tests opt in with `// @vitest-environment happy-dom`.
+  `src/storage/test-fixtures.ts`, `src/ui/test-app.ts` (fully wired UI over the demo house).
+  DOM tests opt in with `// @vitest-environment happy-dom`.
 - Icons are vendored Lucide SVGs in `src/render/icons/lucide/` (see its README to add one).
 - Map styling: skins stroke with `currentColor` and `var(--item-stroke)`; never set decay
   colors inside a skin.

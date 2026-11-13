@@ -1,11 +1,17 @@
 /**
  * App bootstrap: open storage, load the house, mount the map, keep decay current.
- * Wiring only; behavior lives in domain, storage, render and ui.
+ * Wiring only; behavior lives in domain, storage, state, render and ui.
  */
-import { computeHouseStatus, systemClock, uuid, type Clock } from './domain'
-import { MapView } from './render/map-view'
+import { systemClock, uuid, type Clock } from './domain'
 import { createDefaultSkins } from './render/default-skins'
+import { MapEffects } from './render/effects'
+import { MapView } from './render/map-view'
+import { HouseStore } from './state/house-store'
 import { openIdbRepository, requestPersistentStorage, type HouseData, type Repository } from './storage'
+import { connectFeedback } from './ui/feedback'
+import { GestureRecognizer } from './ui/gestures'
+import { MapController } from './ui/map-controller'
+import { Chimes } from './ui/sound'
 import { watchPalette } from './ui/theme'
 import { ViewportController } from './ui/viewport'
 
@@ -23,18 +29,35 @@ export async function startApp(root: HTMLElement, clock: Clock = systemClock): P
     root.replaceChildren(emptyState())
     return
   }
+  const store = new HouseStore(repo, house, { clock, newId: uuid })
 
   const map = new MapView(createDefaultSkins())
   map.setHouse(house)
-  root.replaceChildren(map.root)
+  const overlay = document.createElement('div')
+  overlay.className = 'overlay'
+  root.replaceChildren(map.root, overlay)
 
   const theme = watchPalette(() => refresh())
-  const refresh = () =>
-    map.setStatus(computeHouseStatus(house, { now: clock.now() }), { palette: theme.palette() })
+  const refresh = () => map.setStatus(store.status(), { palette: theme.palette(), config: store.config })
+  store.subscribe(refresh)
 
+  let controller: MapController | null = null
   const viewport = new ViewportController(map.root, map.content, () => map.contentBounds, {
-    onChange: (view) => map.setMinHitSize(MIN_TAP_PX / view.scale),
+    onChange: (view) => {
+      map.setMinHitSize(MIN_TAP_PX / view.scale)
+      controller?.onViewChange()
+    },
   })
+  controller = new MapController({
+    store,
+    map,
+    overlay,
+    view: () => viewport.view,
+    palette: theme.palette,
+  })
+  new GestureRecognizer(map.root, (g) => controller.handle(g))
+  connectFeedback(store, new MapEffects(map), new Chimes())
+
   viewport.fit()
   refresh()
 

@@ -68,15 +68,30 @@ Known follow-ups found in M4:
 - [x] 5.5 Tests: parser allowlist, every library type has an existing icon, no unused icon files
 
 ## M6. Completion interaction
-- [ ] 6.1 Hit-testing and gesture recognizer (tap vs. long-press)
-- [ ] 6.2 One-chore tap → `done` event + restore
-- [ ] 6.3 Chore ring (2 to 5 chores, worst first); 6+ falls back to a bottom sheet
-- [ ] 6.4 Long-press chore menu: Skip, Done earlier (backdate)
-- [ ] 6.5 Undo toast (about 5s) → `void` event
-- [ ] 6.6 Restore animation (sparkle) + distinct, quieter skip animation
-- [ ] 6.7 Sound: a small set of varied completion sounds via Web Audio
-- [ ] 6.8 Room checklist from the room label
-- [ ] 6.9 Item details/history view with editable notes
+Foundations first, so every completion path (tap, ring, checklist) animates and undoes the same way.
+- [x] 6.1 `HouseStore` (`src/state`): in-memory house, writes through `Repository`, notifies
+  subscribers with what changed. The app recomputes decay on every change
+- [x] 6.2 Gestures: resolve the tapped thing (item / floor / room label); tap vs. long-press
+  recognizer independent of the viewport (shares `DRAG_THRESHOLD`); right-click = long-press
+- [x] 6.3 Effects driven by store changes: restore (decay color transitions back, a small pop,
+  sparkle), skip (quieter pulse, no sparkle); `prefers-reduced-motion` respected
+- [x] 6.4 Sound: a few short synthesized chimes via Web Audio (no audio files); skip is softer
+- [x] 6.5 Undo toast (about 5s) → `void` events; a new toast replaces the old one
+- [x] 6.6 One-chore item: tap → `done`
+- [x] 6.7 Chore ring for 2 to 5 chores: HTML overlay over the item, worst first, follows pan/zoom,
+  stays open for more logging; floor tap opens the floor's ring; 6+ chores → sheet list
+- [x] 6.8 Sheet component + chore menu on long-press: Skip, Done earlier, History
+- [x] 6.9 Room checklist from the room label: due chores pre-checked, one confirm
+- [x] 6.10 Item details: notes (editable), history newest first, voided hidden, filter by chore
+- [x] 6.11 Tests: store, gestures, layout, formatting, toast, feedback wiring, and a controller
+  integration suite over the demo house (`src/ui/test-app.ts`); flows checked in real Chrome
+
+Known follow-ups found in M6:
+- Map items aren't keyboard-reachable yet (SVG hit targets aren't focusable). Overlay UI
+  (ring, sheets, toast) is real buttons and dialogs, so it is.
+- No way to mute sound yet; `Chimes` takes an `enabled` callback for when settings exist.
+- One-tap completion's feel is the doc's open question; judge it during M8 before
+  considering press-and-hold.
 
 ## M7. House entry + onboarding
 - [ ] 7.1 Minimal grid editor: add/resize rooms (rectangles), place/move/rotate items
@@ -105,6 +120,14 @@ Known follow-ups found in M4:
 - **The floor item is never drawn.** Items of type `floor` only drive their room's tint.
 - **Dev builds seed a demo house** into an empty database (`src/dev/demo-house.ts`, excluded
   from production builds). Clear site data in the browser to reset it.
+- **Writes are save-then-show.** `HouseStore` persists to IndexedDB before updating memory and
+  notifying, so the UI never shows unsaved state. Writes take milliseconds, so it feels instant.
+- **Feedback subscribes to the store**, not to buttons: every completion path animates and
+  sounds the same, and one action (e.g. a room checklist) plays one sound.
+- **While the ring is open, any tap on the map only closes it**, even a tap on another item,
+  so a stray tap never logs a chore by accident.
+- **Sounds are synthesized** (Web Audio), not audio files: pentatonic motifs in a random key,
+  never the same motif twice running.
 - **Import only merges.** Entities are upserted (the file wins), events are unioned. There's no
   "replace" mode; restoring into a fresh install is the same operation.
 - **Stage thresholds live in `DecayConfig`** so Phase 0 tuning is a config change.

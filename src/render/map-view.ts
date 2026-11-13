@@ -24,7 +24,7 @@ import {
   type Room,
 } from '../domain'
 import { floorTint, itemDecayStyle, type DecayPalette } from './decay-style'
-import { atLeast, center, CELL, footprint, gridToUnits, homeBounds, roomOutline, type Rect } from './geometry'
+import { atLeast, center, CELL, footprint, gridToUnits, homeBounds, roomOutline, type Point, type Rect } from './geometry'
 import type { SkinRegistry } from './skins'
 import { setAttrs, svg } from './svg'
 
@@ -43,7 +43,10 @@ export interface DecayRenderOptions {
 }
 
 interface ItemNodes {
+  /** Positioned and rotated via the SVG transform attribute. */
   group: SVGGElement
+  /** Inside `group`; free for CSS/WAAPI transforms (animations) without clobbering placement. */
+  body: SVGGElement
   hit: SVGRectElement
   bounds: Rect
 }
@@ -58,6 +61,7 @@ export class MapView {
 
   private readonly itemNodes = new Map<Id, ItemNodes>()
   private readonly floorTints = new Map<Id, SVGGElement>()
+  private readonly roomCenters = new Map<Id, Point>()
   /** roomId → its floor item's id. */
   private readonly floorItems = new Map<Id, Id>()
   private bounds: Rect = { x: 0, y: 0, w: CELL, h: CELL }
@@ -85,6 +89,7 @@ export class MapView {
     this.itemNodes.clear()
     this.floorTints.clear()
     this.floorItems.clear()
+    this.roomCenters.clear()
     this.bounds = homeBounds(home)
     this.root.setAttribute('aria-label', `Map of ${home.name}`)
 
@@ -107,8 +112,9 @@ export class MapView {
     for (const [roomId, tint] of this.floorTints) {
       const floorId = this.floorItems.get(roomId)
       const fill = floorTint(floorId ? (status.items.get(floorId) ?? null) : null, palette, config)
-      tint.style.fill = fill ?? 'transparent'
-      tint.style.visibility = fill ? 'visible' : 'hidden'
+      // Fade via opacity, keeping the last fill while fading out, so restores ease away.
+      if (fill) tint.style.fill = fill
+      tint.style.opacity = fill ? '1' : '0'
     }
   }
 
@@ -125,6 +131,27 @@ export class MapView {
     return this.itemNodes.get(itemId)?.group
   }
 
+  /** The animatable inner group of an item. */
+  itemBody(itemId: Id): SVGGElement | undefined {
+    return this.itemNodes.get(itemId)?.body
+  }
+
+  /** Center of an item's footprint, in user units. */
+  itemCenter(itemId: Id): Point | undefined {
+    const nodes = this.itemNodes.get(itemId)
+    return nodes && center(nodes.bounds)
+  }
+
+  /** Bounds of an item's footprint, in user units. */
+  itemBounds(itemId: Id): Rect | undefined {
+    return this.itemNodes.get(itemId)?.bounds
+  }
+
+  /** Center of a room's first rectangle, in user units. */
+  roomCenter(roomId: Id): Point | undefined {
+    return this.roomCenters.get(roomId)
+  }
+
   private addRoom(room: Room): void {
     const rects = room.cells.map(gridToUnits)
     const cellRects = () => rects.map((r) => svg('rect', { x: r.x, y: r.y, width: r.w, height: r.h }))
@@ -133,7 +160,7 @@ export class MapView {
       svg('g', { class: 'room-floor', 'data-room-id': room.id }, cellRects()),
     )
     const tint = svg('g', { class: 'floor-tint', 'data-room-id': room.id }, cellRects())
-    tint.style.visibility = 'hidden'
+    tint.style.opacity = '0'
     this.layers.floor.append(tint)
     this.floorTints.set(room.id, tint)
 
@@ -147,6 +174,7 @@ export class MapView {
 
     const anchor = rects[0]
     if (anchor) {
+      this.roomCenters.set(room.id, center(anchor))
       const label = svg('text', {
         class: 'room-label',
         'data-room-id': room.id,
@@ -169,6 +197,7 @@ export class MapView {
       height: item.size.h * CELL,
       label,
     })
+    const body = svg('g', { class: 'item-body' }, [skin])
     const group = svg(
       'g',
       {
@@ -176,13 +205,13 @@ export class MapView {
         'data-item-id': item.id,
         transform: `translate(${c.x} ${c.y})${item.rotation ? ` rotate(${item.rotation})` : ''}`,
       },
-      [skin],
+      [body],
     )
     this.layers.items.append(group)
 
     const hit = svg('rect', { class: 'hit', 'data-item-id': item.id, 'aria-label': label })
     this.layers.ui.append(hit)
-    this.itemNodes.set(item.id, { group, hit, bounds })
+    this.itemNodes.set(item.id, { group, body, hit, bounds })
   }
 
   private applyHitSize(): void {
