@@ -2,7 +2,7 @@
  * App bootstrap: open storage, load the house, mount the map, keep decay current.
  * Wiring only; behavior lives in domain, storage, state, render and ui.
  */
-import { systemClock, uuid, type Clock, type Home } from './domain'
+import { systemClock, uuid, type Clock } from './domain'
 import { createDefaultSkins } from './render/default-skins'
 import { MapEffects } from './render/effects'
 import { MapView } from './render/map-view'
@@ -15,20 +15,23 @@ import {
   openIdbRepository,
   parseBackup,
   requestPersistentStorage,
+  restoreHouse,
   serializeBackup,
   type HouseData,
   type Repository,
 } from './storage'
 import { SheetHost, el } from './ui/components/sheet'
 import { Toaster } from './ui/components/toast'
-import { Editor, type BackupService } from './ui/editor/editor'
+import { Editor } from './ui/editor/editor'
 import { connectFeedback } from './ui/feedback'
 import { GestureRecognizer } from './ui/gestures'
 import { MapController } from './ui/map-controller'
-import { houseSettingsBody } from './ui/panels/editor-panels'
+import { Preferences } from './ui/preferences'
+import { Settings, type BackupService } from './ui/settings'
 import { Chimes } from './ui/sound'
 import { watchPalette } from './ui/theme'
 import { ViewportController } from './ui/viewport'
+import { welcome } from './ui/welcome'
 
 /** Minimum tap target, in CSS px. */
 const MIN_TAP_PX = 44
@@ -41,11 +44,19 @@ export async function startApp(root: HTMLElement, clock: Clock = systemClock): P
   requestPersistentStorage().catch((err) => console.warn('Persistent storage request failed', err))
 
   let house = await loadFirstHouse(repo, clock)
-  const firstRun = !house
+  /** Set when the user just started a new house (not when they restored one). */
+  let firstRun = false
+  let restored = false
   if (!house) {
-    const home = await welcome(root)
-    await repo.save({ homes: [home] })
-    house = (await repo.loadHouse(home.id))!
+    const result = await welcome(root, { defaultGrid: DEFAULT_GRID, newId: uuid, restore: async (file) => restoreHouse(repo, parseBackup(await file.text())) })
+    if (result.kind === 'new') {
+      await repo.save({ homes: [result.home] })
+      house = (await repo.loadHouse(result.home.id))!
+      firstRun = true
+    } else {
+      house = result.house
+      restored = true
+    }
   }
   const store = new HouseStore(repo, house, { clock, newId: uuid })
 
@@ -56,6 +67,9 @@ export async function startApp(root: HTMLElement, clock: Clock = systemClock): P
   root.replaceChildren(map.root, overlay)
   const sheets = new SheetHost(overlay)
   const toaster = new Toaster(overlay)
+  const prefs = new Preferences()
+  const backup = backupService(repo, clock)
+  const settings = new Settings({ store, sheets, toaster, backup, prefs })
 
   const theme = watchPalette(() => refresh())
   const refresh = () => map.setStatus(store.status(), { palette: theme.palette(), config: store.config })
@@ -87,7 +101,10 @@ export async function startApp(root: HTMLElement, clock: Clock = systemClock): P
     skins,
     view: () => viewport.view,
     render,
-    backup: backupService(repo, clock),
+    openSettings: () => {
+      controller?.dismiss()
+      settings.open()
+    },
     clock,
     newId: uuid,
     onModeChange: () => {
@@ -109,13 +126,14 @@ export async function startApp(root: HTMLElement, clock: Clock = systemClock): P
   })
 
   new GestureRecognizer(map.root, (g) => (editor?.isActive ? editor.handle(g) : controller?.handle(g)))
-  connectFeedback(store, new MapEffects(map), new Chimes())
+  connectFeedback(store, new MapEffects(map), new Chimes({ enabled: () => prefs.sound }))
 
   render(store.house)
   viewport.fit()
   editor.redraw()
   // Nothing to look at without rooms: open straight into the editor.
   if (firstRun || store.house.rooms.length === 0) editor.enter()
+  if (restored) toaster.show(`Restored ${store.house.home.name}`)
 
   onUpdateAvailable((activate) => toaster.show('Update available', { label: 'Reload', run: activate }, { persist: true }))
 
@@ -149,22 +167,6 @@ async function loadFirstHouse(repo: Repository, clock: Clock): Promise<HouseData
     ;[home] = await repo.listHomes()
   }
   return home ? repo.loadHouse(home.id) : null
-}
-
-/** First run: name the home and size its grid. Resolves with the new home. */
-function welcome(root: HTMLElement): Promise<Home> {
-  return new Promise((resolve) => {
-    const body = houseSettingsBody({ name: 'Home', width: DEFAULT_GRID.w, height: DEFAULT_GRID.h }, 'Start drawing', {
-      onSave: ({ name, width, height }) => resolve({ id: uuid(), name, gridSize: { w: width, h: height } }),
-    })
-    root.replaceChildren(
-      el('main', { className: 'welcome' }, [
-        el('h1', { text: 'Your house, mapped' }),
-        el('p', { className: 'sheet-note', text: 'Draw your home as a grid of rooms, then add the things in it that need looking after.' }),
-        body,
-      ]),
-    )
-  })
 }
 
 function backupService(repo: Repository, clock: Clock): BackupService {

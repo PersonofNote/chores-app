@@ -1,4 +1,4 @@
-/** Sheet bodies for the editor: naming rooms, confirming deletes, picking items, house settings. */
+/** Sheet bodies for the editor: naming rooms, confirming deletes, picking items, the house's name and size. */
 import { FLOOR_TYPE, type Library } from '../../domain'
 import { button, el } from '../components/sheet'
 
@@ -64,16 +64,10 @@ export interface HouseSettings {
   height: number
 }
 
-export interface HouseSettingsHandlers {
-  onSave: (s: HouseSettings) => void
-  onExport: () => void
-  onImport: (file: File) => void
-}
-
 export const GRID_LIMITS = { min: 4, max: 60 }
 
-/** Size and name of the house, plus backup. Also used for the first-run form. */
-export function houseSettingsBody(initial: HouseSettings, saveLabel: string, h: Partial<HouseSettingsHandlers> & Pick<HouseSettingsHandlers, 'onSave'>): HTMLElement {
+/** Name and grid size of the house. Used in Settings and for the first-run form. */
+export function houseSettingsBody(initial: HouseSettings, saveLabel: string, onSave: (s: HouseSettings) => void): HTMLElement {
   const name = el('input', { className: 'text-input', attrs: { type: 'text', maxlength: '40', 'aria-label': 'Home name' } })
   name.value = initial.name
   const size = (label: string, value: number) => {
@@ -95,10 +89,10 @@ export function houseSettingsBody(initial: HouseSettings, saveLabel: string, h: 
     if (!name.value.trim()) return void (error.textContent = 'Give your home a name.')
     if (!ok(w) || !ok(hh)) return void (error.textContent = `Size must be ${GRID_LIMITS.min}–${GRID_LIMITS.max} cells each way.`)
     error.textContent = ''
-    h.onSave({ name: name.value.trim(), width: w, height: hh })
+    onSave({ name: name.value.trim(), width: w, height: hh })
   }, 'sheet-button primary')
 
-  const body = el('div', { className: 'sheet-body' }, [
+  return el('div', { className: 'sheet-body' }, [
     el('label', { className: 'field' }, [el('span', { text: 'Name' }), name]),
     el('div', { className: 'sheet-row' }, [
       el('label', { className: 'field' }, [el('span', { text: 'Width (cells)' }), width]),
@@ -108,21 +102,4 @@ export function houseSettingsBody(initial: HouseSettings, saveLabel: string, h: 
     error,
     save,
   ])
-
-  if (h.onExport && h.onImport) {
-    const file = el('input', { attrs: { type: 'file', accept: 'application/json,.json', hidden: '' } })
-    const onImport = h.onImport
-    file.addEventListener('change', () => {
-      const f = file.files?.[0]
-      if (f) onImport(f)
-      file.value = ''
-    })
-    body.append(
-      el('h3', { text: 'Backup' }),
-      el('p', { className: 'sheet-note', text: 'Everything lives on this device. Export a backup now and then; importing merges, it never deletes.' }),
-      el('div', { className: 'sheet-row' }, [button('Export backup', h.onExport), button('Import backup…', () => file.click())]),
-      file,
-    )
-  }
-  return body
 }

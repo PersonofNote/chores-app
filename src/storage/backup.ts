@@ -19,7 +19,7 @@ import {
   ValidationError,
   type Clock,
 } from '../domain'
-import type { Repository, Snapshot } from './repository'
+import type { HouseData, Repository, Snapshot } from './repository'
 
 export const BACKUP_FORMAT = 'house-monitor-backup'
 export const BACKUP_VERSION = 1
@@ -137,4 +137,16 @@ export async function importBackup(repo: Repository, backup: Backup): Promise<Im
     tasks: tasks.length,
     events: { total: events.length, added: events.filter((e) => !existing.has(e.id)).length },
   }
+}
+
+/**
+ * First run on a new device: imports a backup into an empty database and loads the
+ * house in it. Throws a ValidationError if the backup has no house.
+ */
+export async function restoreHouse(repo: Repository, backup: Backup): Promise<HouseData> {
+  if (backup.homes.length === 0) throw new ValidationError('backup: there’s no house in it')
+  await importBackup(repo, backup)
+  const house = await repo.loadHouse(backup.homes[0]!.id)
+  if (!house) throw new ValidationError('backup: there’s no house in it')
+  return house
 }

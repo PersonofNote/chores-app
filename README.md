@@ -100,8 +100,20 @@ already revalidate it.
    app keeps its own storage, separate from Safari's, so a house set up in a Safari tab won't
    appear in the installed app.
 
+### Moving a house to another device
+
+You can draw the house on a computer with a mouse, then move it to your phone:
+
+1. On the computer: Settings → Export backup.
+2. Get the file to the phone (AirDrop, iCloud Drive, email).
+3. On the phone, open the installed app for the first time and choose **Restore from
+   backup…** on the welcome screen.
+
+This is a one-time copy, not sync: afterwards each device keeps its own log. Pick one device
+(the phone) as the house's home from then on.
+
 ### Backups
 
-All data is on-device. Use House settings (in edit mode) → Export backup to download a JSON
+All data is on-device. Open Settings (top right of the map) → Export backup to download a JSON
 file. Importing a backup merges it into the current house; it never deletes anything. Export
 one after setting up your house and now and then afterwards.

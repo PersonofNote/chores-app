@@ -36,21 +36,16 @@ import type { MapView } from '../../render/map-view'
 import type { SkinRegistry } from '../../render/skins'
 import { svg } from '../../render/svg'
 import { LayoutError, type HouseStore } from '../../state/house-store'
-import type { HouseData, ImportSummary } from '../../storage'
+import type { HouseData } from '../../storage'
 import { button, el, type SheetHost } from '../components/sheet'
 import type { Toaster } from '../components/toast'
 import type { Gesture } from '../gestures'
-import { confirmBody, houseSettingsBody, libraryPickerBody, roomNameBody } from '../panels/editor-panels'
+import { confirmBody, libraryPickerBody, roomNameBody } from '../panels/editor-panels'
 import { seedPrompt } from '../panels/seed-prompt'
 import { screenToContent, type ViewState } from '../viewport-math'
 import { check, CORNERS, propose, type Corner, type DragTarget, type Proposal } from './drag'
 
 export type Selection = { kind: 'room'; roomId: Id; rectIndex: number } | { kind: 'item'; itemId: Id } | null
-
-export interface BackupService {
-  exportFile(): Promise<void>
-  importFile(file: File): Promise<ImportSummary>
-}
 
 export interface EditorDeps {
   store: HouseStore
@@ -62,7 +57,8 @@ export interface EditorDeps {
   view: () => ViewState
   /** Draws a house on the map (the store's, or a drag preview) and restyles decay. */
   render: (house: Readonly<HouseData>) => void
-  backup: BackupService
+  /** Opens the Settings sheet (name, size, sound, backup). */
+  openSettings: () => void
   clock: Clock
   newId: IdGenerator
   random?: Random
@@ -89,19 +85,23 @@ export class Editor {
   private active = false
   private selection: Selection = null
   private drag: DragSession | null = null
-  private readonly editButton: HTMLButtonElement
+  /** Settings and Edit, shown while not editing. */
+  private readonly modeBar: HTMLDivElement
   private readonly topBar: HTMLDivElement
   private readonly toolbar: HTMLDivElement
   private readonly random: Random
 
   constructor(private readonly deps: EditorDeps) {
     this.random = deps.random ?? Math.random
-    this.editButton = button('Edit', () => this.enter(), 'mode-button')
+    this.modeBar = el('div', { className: 'mode-bar' }, [
+      button('Settings', () => deps.openSettings(), 'mode-button'),
+      button('Edit', () => this.enter(), 'mode-button'),
+    ])
     this.topBar = el('div', { className: 'editor-topbar' })
     this.toolbar = el('div', { className: 'editor-toolbar', attrs: { role: 'toolbar', 'aria-label': 'Editor' } })
     this.topBar.hidden = true
     this.toolbar.hidden = true
-    deps.overlay.append(this.editButton, this.topBar, this.toolbar)
+    deps.overlay.append(this.modeBar, this.topBar, this.toolbar)
 
     const root = deps.map.root
     root.addEventListener('pointerdown', (e) => this.onPointerDown(e))
@@ -127,7 +127,7 @@ export class Editor {
   enter(): void {
     this.active = true
     this.deps.map.setEditing(true)
-    this.editButton.hidden = true
+    this.modeBar.hidden = true
     this.topBar.hidden = false
     this.toolbar.hidden = false
     this.deps.onModeChange?.(true)
@@ -139,7 +139,7 @@ export class Editor {
     this.selection = null
     this.drag = null
     this.deps.map.setEditing(false)
-    this.editButton.hidden = false
+    this.modeBar.hidden = false
     this.topBar.hidden = true
     this.toolbar.hidden = true
     this.deps.onModeChange?.(false)
@@ -178,7 +178,7 @@ export class Editor {
       body: roomNameBody('', 'Add room', (name) => {
         sheets.close()
         const spot = findRoomSpot(store.house.home, store.house.rooms, NEW_ROOM_SIZE, this.viewCenterCell())
-        if (!spot) return this.say('There’s no free space left. Make the house bigger in House settings.')
+        if (!spot) return this.say('There’s no free space left. Make the house bigger in Settings.')
         const room: Room = { id: this.deps.newId(), homeId: store.house.home.id, name, cells: [spot] }
         const floor: Item = {
           id: this.deps.newId(),
@@ -293,35 +293,6 @@ export class Editor {
     this.confirm(`Delete ${itemTypeLabel(item.type)}? Past history stays in backups.`, 'Delete', async () => {
       await this.deps.store.deleteItem(itemId)
       this.select(null)
-    })
-  }
-
-  openHouseSettings(): void {
-    const { store, sheets, backup } = this.deps
-    const home = store.house.home
-    sheets.open({
-      title: 'House settings',
-      body: houseSettingsBody({ name: home.name, width: home.gridSize.w, height: home.gridSize.h }, 'Save', {
-        onSave: ({ name, width, height }) => {
-          this.run(async () => {
-            await store.updateHome({ ...home, name, gridSize: { w: width, h: height } })
-            sheets.close()
-          })
-        },
-        onExport: () => {
-          backup.exportFile().catch((err) => this.failed(err))
-        },
-        onImport: (file) => {
-          sheets.close()
-          backup.importFile(file).then(
-            (s) => {
-              this.say(`Imported ${s.events.added} new log entr${s.events.added === 1 ? 'y' : 'ies'}. Reloading…`)
-              setTimeout(() => location.reload(), 1500)
-            },
-            (err) => this.failed(err),
-          )
-        },
-      }),
     })
   }
 
@@ -490,7 +461,7 @@ export class Editor {
     const { store } = this.deps
     this.topBar.replaceChildren(
       el('span', { className: 'editor-title', text: `Editing ${store.house.home.name}` }),
-      button('House…', () => this.openHouseSettings(), 'bar-button'),
+      button('Settings', () => this.deps.openSettings(), 'bar-button'),
       button('Done', () => this.exit(), 'bar-button primary'),
     )
     const sel = this.selection
@@ -604,6 +575,6 @@ export class Editor {
   private failed(err: unknown): void {
     if (err instanceof LayoutError) return this.say(err.message)
     console.error(err)
-    this.say(err instanceof Error && err.name === 'ValidationError' ? `That file isn’t a valid backup: ${err.message}` : 'Something went wrong. Try again.')
+    this.say('Something went wrong. Try again.')
   }
 }

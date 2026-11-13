@@ -24,7 +24,7 @@ describe('Editor', () => {
     expect(a.overlay.querySelector<HTMLElement>('.editor-toolbar')!.hidden).toBe(false)
     a.editor.exit()
     expect(a.map.root.classList.contains('editing')).toBe(false)
-    expect(a.overlay.querySelector<HTMLElement>('.mode-button')!.hidden).toBe(false)
+    expect(a.overlay.querySelector<HTMLElement>('.mode-bar')!.hidden).toBe(false)
   })
 
   it('adds a room with a floor, then seeds its chores even if the prompt is just closed', async () => {

@@ -94,7 +94,7 @@ Foundations first, so every completion path (tap, ring, checklist) animates and 
 Known follow-ups found in M6:
 - Map items aren't keyboard-reachable yet (SVG hit targets aren't focusable). Overlay UI
   (ring, sheets, toast) is real buttons and dialogs, so it is.
-- No way to mute sound yet; `Chimes` takes an `enabled` callback for when settings exist.
+- ~~No way to mute sound yet~~: done before M8 (Settings → Sound).
 - One-tap completion's feel is the doc's open question; judge it during M8 before
   considering press-and-hold.
 
@@ -123,6 +123,13 @@ Known follow-ups found in M7:
 - In a crowded room with no free corner, the label falls back to the top-left over an item.
 - Export/import were exercised through their tested functions and a click in Chrome, but a
   full round trip through the file picker needs a manual check on a real device.
+
+## Before M8: getting a house onto the phone
+- [x] Settings opens from the map (and the editor's top bar), not only from edit mode: house
+  name and size, sound, backup. Lives in `ui/settings.ts`, shared by both
+- [x] Mute: Settings → Sound, a per-device preference (`ui/preferences.ts`)
+- [x] Welcome screen offers "Restore from backup…", so a house drawn on a computer can be moved
+  to the phone without first creating a placeholder house (`restoreHouse` in `storage/backup.ts`)
 
 ## M8. Live with it
 - [ ] 8.0 Host it over HTTPS (service workers need it; any static host works, the build uses
@@ -171,4 +178,10 @@ Known follow-ups found in M7:
 - **Build-side code lives in `build/`** (Node, `tsconfig.node.json`); app code stays in `src/`.
 - **Import only merges.** Entities are upserted (the file wins), events are unioned. There's no
   "replace" mode; restoring into a fresh install is the same operation.
+- **Device preferences (sound) live in `localStorage`, not the database.** They describe the
+  device, not the house, so they stay out of backups and don't travel with a restore.
+- **Moving a house between devices is export then restore**, a one-time copy rather than
+  sync. Import into a device that already has a *different* house adds a second home, and the
+  app has no way to choose between homes yet (it opens the first). Restore on a fresh install
+  avoids that.
 - **Stage thresholds live in `DecayConfig`** so Phase 0 tuning is a config change.

@@ -11,8 +11,16 @@ import { Toaster } from './components/toast'
 import type { HouseData } from '../storage'
 import { Editor } from './editor/editor'
 import { MapController } from './map-controller'
+import { Preferences } from './preferences'
+import { Settings, type BackupService } from './settings'
 
-export async function testApp(opts: { extraTasks?: (data: ReturnType<typeof buildDemoHouse>) => Task[] } = {}) {
+/** localStorage stand-in, so tests don't share preferences. */
+export function memoryStorage(): Pick<Storage, 'getItem' | 'setItem'> {
+  const values = new Map<string, string>()
+  return { getItem: (k) => values.get(k) ?? null, setItem: (k, v) => void values.set(k, v) }
+}
+
+export async function testApp(opts: { extraTasks?: (data: ReturnType<typeof buildDemoHouse>) => Task[]; backup?: Partial<BackupService> } = {}) {
   const clock = fixedClock('2026-06-01T08:00:00.000Z')
   const newId = sequentialIds('t')
   const demo = buildDemoHouse(clock, newId)
@@ -35,11 +43,18 @@ export async function testApp(opts: { extraTasks?: (data: ReturnType<typeof buil
     map.setStatus(store.status(), { palette: LIGHT_PALETTE })
   }
   store.subscribe((c) => c.kind === 'layout' && render(store.house))
+  const prefs = new Preferences(memoryStorage())
+  const reloads: number[] = []
+  const settings = new Settings({
+    store, sheets, toaster, prefs,
+    backup: { exportFile: async () => {}, importFile: async () => { throw new Error('not in tests') }, ...opts.backup },
+    reload: () => reloads.push(Date.now()),
+  })
   const editor = new Editor({
     store, map, overlay, sheets, toaster, view, render, clock, newId,
     skins: new SkinRegistry(),
     random: () => 0.5,
-    backup: { exportFile: async () => {}, importFile: async () => { throw new Error('not in tests') } },
+    openSettings: () => settings.open(),
   })
 
   const itemOf = (type: string) => house.items.find((i) => i.type === type)!
@@ -64,5 +79,5 @@ export async function testApp(opts: { extraTasks?: (data: ReturnType<typeof buil
     b.click()
   }
 
-  return { store, map, overlay, controller, editor, repo, clock, itemOf, roomOf, ui, tap, longPress, settle, click }
+  return { store, map, overlay, controller, editor, settings, prefs, reloads, repo, clock, itemOf, roomOf, ui, tap, longPress, settle, click }
 }

@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest'
-import { recordDone, ValidationError } from '../domain'
-import { BACKUP_VERSION, backupFileName, createBackup, importBackup, parseBackup, serializeBackup } from './backup'
+import { fixedClock, recordDone, ValidationError } from '../domain'
+import { BACKUP_VERSION, backupFileName, createBackup, importBackup, parseBackup, restoreHouse, serializeBackup } from './backup'
 import type { Repository } from './repository'
 import { openTestRepository, smallHouse } from './test-fixtures'
 
@@ -43,6 +43,20 @@ describe('backup round trip', () => {
     const all = await repo.exportAll()
     expect(all.events).toHaveLength(h.events.length + 1)
     expect(all.events.some((e) => e.id === later.id)).toBe(true)
+  })
+
+  it('restores a house onto a new device and loads it', async () => {
+    const { repo, h } = await seededRepo()
+    const backup = parseBackup(serializeBackup(await createBackup(repo, h.clock)))
+    const target = await newRepo()
+    const house = await restoreHouse(target, backup)
+    expect(house).toEqual(await repo.loadHouse(h.home.id))
+  })
+
+  it('refuses to restore a backup with no house in it', async () => {
+    const empty = await newRepo()
+    const backup = parseBackup(serializeBackup(await createBackup(empty, fixedClock('2026-03-01T09:00:00.000Z'))))
+    await expect(restoreHouse(await newRepo(), backup)).rejects.toThrow(ValidationError)
   })
 
   it('names the file by date', () => {
