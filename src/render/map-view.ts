@@ -1,7 +1,9 @@
 /**
  * The house map as SVG. Layers, bottom to top:
  *
- *   floor → walls → items → decay → effects → ui
+ *   floor → grid → walls → items → decay → effects → ui
+ *
+ * The grid layer is only visible while editing (`setEditing`).
  *
  * `setHouse` builds the structure; `setStatus` restyles existing nodes in place.
  * Keeping nodes stable across decay updates is what lets restore animations (M6)
@@ -24,11 +26,12 @@ import {
   type Room,
 } from '../domain'
 import { floorTint, itemDecayStyle, type DecayPalette } from './decay-style'
-import { atLeast, center, CELL, footprint, gridToUnits, homeBounds, roomOutline, type Point, type Rect } from './geometry'
+import { atLeast, boundingRect, center, CELL, footprint, gridToUnits, homeBounds, roomOutline, type Point, type Rect } from './geometry'
+import { labelPlacement } from './labels'
 import type { SkinRegistry } from './skins'
 import { setAttrs, svg } from './svg'
 
-export const LAYERS = ['floor', 'walls', 'items', 'decay', 'effects', 'ui'] as const
+export const LAYERS = ['floor', 'grid', 'walls', 'items', 'decay', 'effects', 'ui'] as const
 export type LayerName = (typeof LAYERS)[number]
 
 export interface MapModel {
@@ -51,8 +54,6 @@ interface ItemNodes {
   bounds: Rect
 }
 
-const ROOM_LABEL_PADDING = 6
-
 export class MapView {
   readonly root: SVGSVGElement
   /** Receives the pan/zoom transform. */
@@ -65,6 +66,7 @@ export class MapView {
   /** roomId → its floor item's id. */
   private readonly floorItems = new Map<Id, Id>()
   private bounds: Rect = { x: 0, y: 0, w: CELL, h: CELL }
+  private roomBounds: Rect | null = null
   private minHitSize = 0
 
   constructor(
@@ -78,9 +80,14 @@ export class MapView {
     this.root = svg('svg', { class: 'map', role: 'img' }, [this.content])
   }
 
-  /** The house's extent in user units, for fitting the viewport. */
+  /** The whole home grid in user units (for fitting the view while editing). */
   get contentBounds(): Rect {
     return this.bounds
+  }
+
+  /** Where the rooms are, plus half a cell of margin; the grid if there are none. */
+  get roomsBounds(): Rect {
+    return this.roomBounds ?? this.bounds
   }
 
   /** (Re)builds the whole map. Call when rooms or items change, not for decay. */
@@ -91,9 +98,12 @@ export class MapView {
     this.floorItems.clear()
     this.roomCenters.clear()
     this.bounds = homeBounds(home)
+    const box = boundingRect(rooms.flatMap((r) => r.cells.map(gridToUnits)))
+    this.roomBounds = box && { x: box.x - CELL / 2, y: box.y - CELL / 2, w: box.w + CELL, h: box.h + CELL }
+    this.drawGrid(home.gridSize.w, home.gridSize.h)
     this.root.setAttribute('aria-label', `Map of ${home.name}`)
 
-    for (const room of rooms) this.addRoom(room)
+    for (const room of rooms) this.addRoom(room, items)
     for (const item of items) {
       if (isFloorItem(item)) this.floorItems.set(item.roomId, item.id)
       else this.addItem(item)
@@ -127,6 +137,11 @@ export class MapView {
     this.applyHitSize()
   }
 
+  /** Edit mode: shows the grid; CSS can restyle anything under `.map.editing`. */
+  setEditing(on: boolean): void {
+    this.root.classList.toggle('editing', on)
+  }
+
   itemGroup(itemId: Id): SVGGElement | undefined {
     return this.itemNodes.get(itemId)?.group
   }
@@ -152,7 +167,14 @@ export class MapView {
     return this.roomCenters.get(roomId)
   }
 
-  private addRoom(room: Room): void {
+  private drawGrid(w: number, h: number): void {
+    const lines: SVGElement[] = [svg('rect', { class: 'grid-bounds', x: 0, y: 0, width: w * CELL, height: h * CELL })]
+    for (let x = 1; x < w; x++) lines.push(svg('line', { x1: x * CELL, y1: 0, x2: x * CELL, y2: h * CELL }))
+    for (let y = 1; y < h; y++) lines.push(svg('line', { x1: 0, y1: y * CELL, x2: w * CELL, y2: y * CELL }))
+    this.layers.grid.append(...lines)
+  }
+
+  private addRoom(room: Room, items: readonly Item[]): void {
     const rects = room.cells.map(gridToUnits)
     const cellRects = () => rects.map((r) => svg('rect', { x: r.x, y: r.y, width: r.w, height: r.h }))
 
@@ -175,12 +197,14 @@ export class MapView {
     const anchor = rects[0]
     if (anchor) {
       this.roomCenters.set(room.id, center(anchor))
+      const place = labelPlacement(room, items)
       const label = svg('text', {
         class: 'room-label',
         'data-room-id': room.id,
-        x: anchor.x + ROOM_LABEL_PADDING,
-        y: anchor.y + ROOM_LABEL_PADDING,
-        'dominant-baseline': 'hanging',
+        x: place.x,
+        y: place.y,
+        'text-anchor': place.anchor,
+        'dominant-baseline': place.baseline,
       })
       label.textContent = room.name
       this.layers.ui.append(label)

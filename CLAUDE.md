@@ -6,9 +6,13 @@ Design: `House Decay App — Architecture & Roadmap.md`. Current work: `docs/pha
 
 ## Commands
 - `npm test` / `npm run test:watch`: Vitest
-- `npm run typecheck`, `npm run build`, `npm run dev` (dev seeds a demo house into an empty DB)
+- `npm run typecheck`, `npm run build`, `npm run dev` (dev seeds a demo house into an empty DB; `?empty` uses a scratch DB, wiped each load, to try first run)
 - `npm run screenshot -- http://localhost:5173/ out.png [light|dark]`: headless-Chrome
-  screenshot plus console output, for checking rendering changes
+  screenshot plus console output, for checking rendering changes (`scripts/cdp.mjs` is the
+  shared DevTools-protocol helper for such scripts)
+- `npm run icons`: re-render the PNG app icons after editing `public/icons/icon.svg`
+- Service worker: only in production builds. Test with `npm run build && npx vite preview`.
+  It's generated from `build/sw.template.js` by the plugin in `build/service-worker.ts`
 
 ## Architecture rules
 - `src/domain` is pure TypeScript: no DOM, no IndexedDB, no `Date.now()` or `Math.random()`.
@@ -17,6 +21,8 @@ Design: `House Decay App — Architecture & Roadmap.md`. Current work: `docs/pha
   (`computeHouseStatus`). Undo is a `void` event, never a delete.
 - Layering: `domain` ← `storage` ← `state` ← `render` / `ui` ← `app.ts`. Nothing imports upward;
   `render` never imports `state` or `ui`.
+- Layout rules live in `src/domain/layout.ts`; the editor (`src/ui/editor`) proposes, the
+  rules decide, and `HouseStore` re-checks before saving.
 - All writes from the UI go through `HouseStore` (`src/state`). React to changes by
   subscribing; completion animations and sound are wired that way (`ui/feedback.ts`).
 - UI is plain TypeScript + hand-written SVG. No UI framework.

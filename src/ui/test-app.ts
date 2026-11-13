@@ -6,6 +6,10 @@ import { MapView } from '../render/map-view'
 import { SkinRegistry } from '../render/skins'
 import { HouseStore } from '../state/house-store'
 import { openTestRepository } from '../storage/test-fixtures'
+import { SheetHost } from './components/sheet'
+import { Toaster } from './components/toast'
+import type { HouseData } from '../storage'
+import { Editor } from './editor/editor'
 import { MapController } from './map-controller'
 
 export async function testApp(opts: { extraTasks?: (data: ReturnType<typeof buildDemoHouse>) => Task[] } = {}) {
@@ -22,12 +26,20 @@ export async function testApp(opts: { extraTasks?: (data: ReturnType<typeof buil
   map.setHouse(house)
   const overlay = document.createElement('div')
   document.body.replaceChildren(map.root, overlay)
-  const controller = new MapController({
-    store,
-    map,
-    overlay,
-    view: () => ({ scale: 1, tx: 0, ty: 0 }),
-    palette: () => LIGHT_PALETTE,
+  const sheets = new SheetHost(overlay)
+  const toaster = new Toaster(overlay)
+  const view = () => ({ scale: 1, tx: 0, ty: 0 })
+  const controller = new MapController({ store, map, overlay, view, palette: () => LIGHT_PALETTE, sheets, toaster })
+  const render = (data: Readonly<HouseData>) => {
+    map.setHouse(data)
+    map.setStatus(store.status(), { palette: LIGHT_PALETTE })
+  }
+  store.subscribe((c) => c.kind === 'layout' && render(store.house))
+  const editor = new Editor({
+    store, map, overlay, sheets, toaster, view, render, clock, newId,
+    skins: new SkinRegistry(),
+    random: () => 0.5,
+    backup: { exportFile: async () => {}, importFile: async () => { throw new Error('not in tests') } },
   })
 
   const itemOf = (type: string) => house.items.find((i) => i.type === type)!
@@ -44,5 +56,13 @@ export async function testApp(opts: { extraTasks?: (data: ReturnType<typeof buil
   /** Lets the store's async writes (fake IndexedDB) settle. */
   const settle = () => new Promise((r) => setTimeout(r, 20))
 
-  return { store, map, overlay, controller, repo, clock, itemOf, roomOf, ui, tap, longPress, settle }
+  /** Clicks the button with this exact text, preferring an open sheet. */
+  const click = (text: string) => {
+    const scope = overlay.querySelector('dialog.sheet') ?? overlay
+    const b = [...scope.querySelectorAll<HTMLElement>('button, label')].find((x) => x.textContent?.trim() === text)
+    if (!b) throw new Error(`No button '${text}'`)
+    b.click()
+  }
+
+  return { store, map, overlay, controller, editor, repo, clock, itemOf, roomOf, ui, tap, longPress, settle, click }
 }

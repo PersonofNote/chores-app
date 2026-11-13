@@ -15,6 +15,11 @@ export interface ViewportOptions {
   /** Space around the house when fitting, in CSS px. */
   padding?: number
   onChange?: (state: ViewState) => void
+  /**
+   * Return true to leave a pointer alone (e.g. the editor is dragging something
+   * with it). Checked on pointerdown.
+   */
+  claimsPointer?: (e: PointerEvent) => boolean
 }
 
 export class ViewportController {
@@ -27,6 +32,7 @@ export class ViewportController {
   private readonly limits: ScaleLimits
   private readonly padding: number
   private readonly onChange: ((s: ViewState) => void) | undefined
+  private readonly claimsPointer: (e: PointerEvent) => boolean
   private readonly resizeObserver: ResizeObserver
   private readonly abort = new AbortController()
 
@@ -39,6 +45,7 @@ export class ViewportController {
     this.limits = opts.limits ?? { min: 0.2, max: 6 }
     this.padding = opts.padding ?? 16
     this.onChange = opts.onChange
+    this.claimsPointer = opts.claimsPointer ?? (() => false)
 
     const on = <K extends keyof SVGElementEventMap>(type: K, fn: (e: SVGElementEventMap[K]) => void, passive = true) =>
       surface.addEventListener(type, fn as EventListener, { signal: this.abort.signal, passive })
@@ -82,6 +89,7 @@ export class ViewportController {
   }
 
   private onPointerDown(e: PointerEvent): void {
+    if (this.claimsPointer(e)) return
     const p = this.local(e)
     this.pointers.set(e.pointerId, p)
     if (this.pointers.size === 1) this.downAt = p

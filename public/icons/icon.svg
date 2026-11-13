@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Full-bleed square: platforms apply their own mask. Artwork stays inside the
+       maskable safe zone (a centered circle of radius 205). -->
+  <rect width="512" height="512" fill="#3d6b5a"/>
+  <g fill="none" stroke="#f4f1ea" stroke-width="24" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M140 266 L256 160 L372 266"/>
+    <path d="M172 240 V364 H340 V240"/>
+    <path d="M232 364 V304 H280 V364"/>
+  </g>
+  <path d="M366 132 L374 158 L400 166 L374 174 L366 200 L358 174 L332 166 L358 158 Z" fill="#f2c25b"/>
+</svg>

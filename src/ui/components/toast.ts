@@ -22,7 +22,8 @@ export class Toaster {
     container.append(this.el)
   }
 
-  show(message: string, action?: ToastAction): void {
+  /** `persist` keeps it up until acted on or replaced (e.g. "Update available"). */
+  show(message: string, action?: ToastAction, opts: { persist?: boolean } = {}): void {
     this.clearTimer()
     const text = document.createElement('span')
     text.textContent = message
@@ -38,7 +39,7 @@ export class Toaster {
       this.el.append(button)
     }
     this.el.hidden = false
-    this.timer = setTimeout(() => this.dismiss(), this.durationMs)
+    if (!opts.persist) this.timer = setTimeout(() => this.dismiss(), this.durationMs)
   }
 
   dismiss(): void {

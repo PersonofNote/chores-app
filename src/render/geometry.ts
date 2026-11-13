@@ -3,7 +3,10 @@
  * CELL units square; the viewport transform handles zoom, so nothing here knows
  * about screen pixels.
  */
-import type { GridRect, Home, Item } from '../domain'
+import type { GridRect, Home } from '../domain'
+
+/** Item footprints are a layout rule; re-exported for render code. */
+export { footprint } from '../domain'
 
 export const CELL = 48
 
@@ -34,20 +37,6 @@ export function gridToUnits(r: GridRect): Rect {
 
 export function homeBounds(home: Pick<Home, 'gridSize'>): Rect {
   return { x: 0, y: 0, w: home.gridSize.w * CELL, h: home.gridSize.h * CELL }
-}
-
-/**
- * Cells an item occupies. `size` is the unrotated footprint; a quarter turn swaps it.
- * `cell` is always the top-left of the occupied area.
- */
-export function footprint(item: Pick<Item, 'cell' | 'size' | 'rotation'>): GridRect {
-  const turned = item.rotation === 90 || item.rotation === 270
-  return {
-    x: item.cell.x,
-    y: item.cell.y,
-    w: turned ? item.size.h : item.size.w,
-    h: turned ? item.size.w : item.size.h,
-  }
 }
 
 export function center(r: Rect): Point {

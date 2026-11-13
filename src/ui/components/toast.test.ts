@@ -41,4 +41,11 @@ describe('Toaster', () => {
     expect(toast().textContent).toBe('Second')
     expect(toast().hidden).toBe(false)
   })
+
+  it('a persistent toast stays until acted on', () => {
+    const t = new Toaster(host)
+    t.show('Update available', { label: 'Reload', run: () => {} }, { persist: true })
+    vi.advanceTimersByTime(TOAST_MS * 10)
+    expect(toast().hidden).toBe(false)
+  })
 })

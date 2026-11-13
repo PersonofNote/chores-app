@@ -17,8 +17,8 @@ import type { MapView } from '../render/map-view'
 import type { HouseStore, StoreChange } from '../state/house-store'
 import { choreOptions, isDue, type ChoreOption } from './chores'
 import { ChoreRing, type RingAnchor } from './components/chore-ring'
-import { SheetHost } from './components/sheet'
-import { Toaster } from './components/toast'
+import type { SheetHost } from './components/sheet'
+import type { Toaster } from './components/toast'
 import { relativeDay } from './format'
 import type { Gesture } from './gestures'
 import { choreList, type ChoreList } from './panels/chore-list'
@@ -42,6 +42,9 @@ export interface MapControllerDeps {
   overlay: HTMLElement
   view: () => ViewState
   palette: () => DecayPalette
+  /** Shared with the editor, so only one sheet or toast shows at a time. */
+  sheets: SheetHost
+  toaster: Toaster
 }
 
 export class MapController {
@@ -59,8 +62,8 @@ export class MapController {
       },
       onMenu: (taskId) => this.openChoreMenu(taskId),
     })
-    this.sheets = new SheetHost(deps.overlay)
-    this.toaster = new Toaster(deps.overlay)
+    this.sheets = deps.sheets
+    this.toaster = deps.toaster
 
     deps.store.subscribe((change) => this.onStoreChange(change))
     document.addEventListener(
@@ -74,9 +77,13 @@ export class MapController {
 
   destroy(): void {
     this.abort.abort()
+    this.dismiss()
+  }
+
+  /** Closes any open ring or sheet (e.g. when switching to edit mode). */
+  dismiss(): void {
     this.ring.close()
     this.sheets.close()
-    this.toaster.dismiss()
   }
 
   handle(g: Gesture): void {

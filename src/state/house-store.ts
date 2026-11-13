@@ -7,18 +7,25 @@
  * every completion path goes through here, they all animate and undo the same way.
  */
 import {
+  checkItem,
+  checkRoom,
   computeHouseStatus,
   DEFAULT_DECAY_CONFIG,
+  describeProblem,
   effectiveEvents,
+  isFloorItem,
   recordDone,
   recordSkip,
   recordVoid,
   type DecayConfig,
   type EffectiveEvent,
   type EventDeps,
+  type Home,
   type HouseStatus,
   type Id,
   type Item,
+  type LayoutProblem,
+  type Room,
   type Task,
   type TaskEvent,
 } from '../domain'
@@ -29,6 +36,16 @@ export type StoreChange =
   | { kind: 'events'; events: readonly TaskEvent[] }
   /** An item's details changed without affecting the map (e.g. notes). */
   | { kind: 'item'; item: Item }
+  /** Home, rooms, items or tasks changed shape: rebuild the map. */
+  | { kind: 'layout' }
+
+/** Thrown when a layout write would break a layout rule (see domain/layout.ts). */
+export class LayoutError extends Error {
+  override name = 'LayoutError'
+  constructor(readonly problem: LayoutProblem) {
+    super(describeProblem(problem))
+  }
+}
 
 export type StoreListener = (change: StoreChange) => void
 
@@ -103,6 +120,99 @@ export class HouseStore {
     this.emit({ kind: 'item', item })
   }
 
+  // ---- Layout -------------------------------------------------------------------
+  // Each op validates the resulting house before saving, so nothing invalid is stored.
+
+  /** Adds a room with its floor item and the floor's chores. */
+  async addRoom(room: Room, floor: Item, floorTasks: readonly Task[]): Promise<void> {
+    this.assertRooms([room], this.data.items)
+    await this.repo.save({ rooms: [room], items: [floor], tasks: [...floorTasks] })
+    this.data.rooms.push(room)
+    this.data.items.push(floor)
+    this.data.tasks.push(...floorTasks)
+    this.emit({ kind: 'layout' })
+  }
+
+  /**
+   * Saves edited rooms together with any items that moved with them (moving a room
+   * carries its items), atomically.
+   */
+  async updateLayout(rooms: readonly Room[], items: readonly Item[] = []): Promise<void> {
+    const nextItems = this.data.items.map((i) => items.find((x) => x.id === i.id) ?? i)
+    this.assertRooms(rooms, nextItems)
+    const nextRooms = this.data.rooms.map((r) => rooms.find((x) => x.id === r.id) ?? r)
+    for (const item of items) this.assertItem(item, nextRooms, nextItems)
+    await this.repo.save({ rooms: [...rooms], items: [...items] })
+    replaceAll(this.data.rooms, nextRooms)
+    replaceAll(this.data.items, nextItems)
+    this.emit({ kind: 'layout' })
+  }
+
+  async deleteRoom(roomId: Id): Promise<void> {
+    await this.repo.deleteRoom(roomId)
+    const itemIds = new Set(this.itemsInRoom(roomId).map((i) => i.id))
+    replaceAll(this.data.rooms, this.data.rooms.filter((r) => r.id !== roomId))
+    replaceAll(this.data.items, this.data.items.filter((i) => !itemIds.has(i.id)))
+    replaceAll(this.data.tasks, this.data.tasks.filter((t) => !itemIds.has(t.itemId)))
+    this.emit({ kind: 'layout' })
+  }
+
+  /** Adds an item with its chores. Its `roomId` is set from where it lands. */
+  async addItem(item: Item, tasks: readonly Task[]): Promise<Item> {
+    const placed = this.assertItem(item, this.data.rooms, [...this.data.items, item])
+    await this.repo.save({ items: [placed], tasks: [...tasks] })
+    this.data.items.push(placed)
+    this.data.tasks.push(...tasks)
+    this.emit({ kind: 'layout' })
+    return placed
+  }
+
+  /** Moves or rotates an item; its room follows where it lands. */
+  async placeItem(item: Item): Promise<Item> {
+    const others = this.data.items.map((i) => (i.id === item.id ? item : i))
+    const placed = this.assertItem(item, this.data.rooms, others)
+    await this.updateLayout([], [placed])
+    return placed
+  }
+
+  async deleteItem(itemId: Id): Promise<void> {
+    await this.repo.deleteItem(itemId)
+    replaceAll(this.data.items, this.data.items.filter((i) => i.id !== itemId))
+    replaceAll(this.data.tasks, this.data.tasks.filter((t) => t.itemId !== itemId))
+    this.emit({ kind: 'layout' })
+  }
+
+  async updateHome(home: Home): Promise<void> {
+    for (const room of this.data.rooms) {
+      const problem = checkRoom(home, this.data.rooms, this.data.items, room)
+      if (problem) throw new LayoutError(problem)
+    }
+    await this.repo.save({ homes: [home] })
+    this.data.home = home
+    this.emit({ kind: 'layout' })
+  }
+
+  /** Onboarding "last done?" answers. Silent: seeds aren't completions. */
+  seed(events: readonly TaskEvent[]): Promise<TaskEvent[]> {
+    return this.append([...events])
+  }
+
+  private assertRooms(rooms: readonly Room[], items: readonly Item[]): void {
+    const all = [...this.data.rooms.filter((r) => !rooms.some((x) => x.id === r.id)), ...rooms]
+    for (const room of rooms) {
+      const problem = checkRoom(this.data.home, all, items, room)
+      if (problem) throw new LayoutError(problem)
+    }
+  }
+
+  /** Validates an item's spot and returns it with `roomId` set to where it landed. */
+  private assertItem(item: Item, rooms: readonly Room[], items: readonly Item[]): Item {
+    if (isFloorItem(item)) return item
+    const placed = checkItem(this.data.home, rooms, items, item)
+    if (!placed.ok) throw new LayoutError(placed.problem)
+    return placed.roomId === item.roomId ? item : { ...item, roomId: placed.roomId }
+  }
+
   /** An item's effective events (voided ones hidden), newest first. */
   history(itemId: Id): HistoryEntry[] {
     const tasks = new Map(this.tasksForItem(itemId).map((t) => [t.id, t]))
@@ -130,4 +240,8 @@ export class HouseStore {
       }
     }
   }
+}
+
+function replaceAll<T>(target: T[], next: readonly T[]): void {
+  target.splice(0, target.length, ...next)
 }

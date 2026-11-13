@@ -11,8 +11,13 @@ UI: plain TypeScript + hand-written SVG throughout, no framework (decided 2026-1
 - [x] 1.1 Vite + TypeScript (strict), Vitest, `.gitignore`, `index.html`, entry point
 - [x] 1.2 Source layout and layering rules (in `CLAUDE.md`): `src/domain` (pure, DOM-free) now;
   `src/storage`, `src/render`, `src/ui` get created by their milestones
-- [ ] 1.3 Web manifest + app icons (placeholder)
-- [ ] 1.4 Service worker: precache the built shell (hand-written; no Workbox)
+- [x] 1.3 Web manifest + app icons: one SVG source, PNGs rendered by `scripts/render-icons.mjs`
+  (headless Chrome, so they're reproducible); iOS meta tags; relative base so any host path works
+- [x] 1.4 Service worker (hand-written; no Workbox): a Vite build plugin injects the exact list
+  of built files and a content hash; cache-first shell, old caches cleaned on activate
+- [x] 1.5 Updates: a new version waits, the app shows "Update available · Reload"; reload only
+  when you choose, never mid-use. Not registered in dev
+- [x] 1.6 Verify in Chrome: installable manifest, controlled page, works offline after first load
 
 ## M2. Domain core (pure TS, no DOM, no storage)
 - [x] 2.1 Types: Home, Room, Item, Task, TaskEvent, PauseWindow
@@ -94,11 +99,35 @@ Known follow-ups found in M6:
   considering press-and-hold.
 
 ## M7. House entry + onboarding
-- [ ] 7.1 Minimal grid editor: add/resize rooms (rectangles), place/move/rotate items
-- [ ] 7.2 Add item from library → creates default tasks
-- [ ] 7.3 "Last done?" prompt per task → seed events
+Scope guard (the doc's "editor rabbit hole" risk): grid rectangles only. No freeform shapes,
+wall drawing or SVG import. Rooms are rectangles (several make an L); items snap to cells.
+- [x] 7.1 Layout rules, pure (`domain/layout.ts`): in bounds, rooms don't overlap each other,
+  items sit fully inside one room and don't overlap other items, free-spot search, room at a cell
+- [x] 7.2 Store layout ops: add/update/delete room (with its floor item) and item (with default
+  tasks), update home; a `layout` change rebuilds the map
+- [x] 7.3 "Last done?" sheet after adding an item or room: this week / this month / no idea
+  per chore → seed events. Closing it counts as "no idea", so nothing is left unseeded
+- [x] 7.4 Room labels avoid items: first free corner of the room (M4 follow-up)
+- [x] 7.5 First run: name the home and pick a grid size. Dev: `?empty` skips the demo house
+- [x] 7.6 Edit mode shell: Edit/Done, grid lines, gestures routed to the editor, selection
+  outline, contextual toolbar; the viewport ignores pointers the editor claims for dragging
+- [x] 7.7 Rooms: add (name quick picks), select, drag to move (its items come along), corner
+  handles to resize, add a section for L-shapes, rename, delete (confirm)
+- [x] 7.8 Items: add from a library picker with icons, auto-placed in the selected room, drag to
+  move (may change room), rotate, delete (confirm)
+- [x] 7.9 House sheet: rename, grid size, export / import backup (the M3 backup gets its UI)
+- [x] 7.10 Tests + browser check
+
+Known follow-ups found in M7:
+- No undo in the editor (deletes ask for confirmation; moves are easy to redo by hand).
+- In a crowded room with no free corner, the label falls back to the top-left over an item.
+- Export/import were exercised through their tested functions and a click in Chrome, but a
+  full round trip through the file picker needs a manual check on a real device.
 
 ## M8. Live with it
+- [ ] 8.0 Host it over HTTPS (service workers need it; any static host works, the build uses
+  relative paths). On iOS, add to Home Screen *before* entering data: the installed app's
+  storage is separate from Safari's
 - [ ] 8.1 Enter the real house
 - [ ] 8.2 Daily use for 3 weeks; usage notes in `docs/phase-0-notes.md`
 - [ ] 8.3 Tune stage thresholds (they're `DecayConfig`, not constants)
@@ -128,6 +157,18 @@ Known follow-ups found in M6:
   so a stray tap never logs a chore by accident.
 - **Sounds are synthesized** (Web Audio), not audio files: pentatonic motifs in a random key,
   never the same motif twice running.
+- **Items don't overlap**, and sit entirely inside one room; rooms don't overlap each other.
+  Enforced in `domain/layout.ts` and re-checked by `HouseStore` before any layout write.
+- **Moving an item across a wall moves it to that room.** Moving a room carries its items.
+- **Drags only pass through valid layouts**: the preview stops at the last valid spot and
+  that's what's saved on release.
+- **Every new room/item gets the "Last done?" sheet; closing it means "no idea"**, so nothing
+  starts with unknown decay.
+- **Outside edit mode the view frames the rooms**, not the whole grid.
+- **The service worker registers at startup**, before first run, so the app is cached for
+  offline use from the first visit. It's production-only; dev never registers one.
+- **Updates wait for a tap** ("Update available · Reload"); the page never reloads on its own.
+- **Build-side code lives in `build/`** (Node, `tsconfig.node.json`); app code stays in `src/`.
 - **Import only merges.** Entities are upserted (the file wins), events are unioned. There's no
   "replace" mode; restoring into a fresh install is the same operation.
 - **Stage thresholds live in `DecayConfig`** so Phase 0 tuning is a config change.

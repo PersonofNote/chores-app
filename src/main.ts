@@ -1,5 +1,12 @@
 import './styles.css'
 import { startApp } from './app'
+import { registerServiceWorker } from './pwa/register'
+import { offerUpdate } from './pwa/updates'
+
+// Register first, so the app is cached for offline use even before first run finishes.
+if (import.meta.env.PROD) {
+  registerServiceWorker({ onUpdate: offerUpdate }).catch((err) => console.warn('Service worker registration failed', err))
+}
 
 const root = document.querySelector<HTMLElement>('#app')!
 startApp(root).catch((err: unknown) => {
