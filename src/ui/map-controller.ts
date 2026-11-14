@@ -10,12 +10,12 @@
  *
  * While the ring is open, a tap anywhere on the map just closes it.
  */
-import { isFloorItem, itemTypeLabel, type Id, type Item, type TaskEvent } from '../domain'
+import { isFloorItem, type Id, type Item, type TaskEvent } from '../domain'
 import type { DecayPalette } from '../render/decay-style'
 import type { Point } from '../render/geometry'
 import type { MapView } from '../render/map-view'
 import type { HouseStore, StoreChange } from '../state/house-store'
-import { choreOptions, isDue, type ChoreOption } from './chores'
+import { choreOptions, isDue, itemLabel, type ChoreOption } from './chores'
 import { ChoreRing, type RingAnchor } from './components/chore-ring'
 import type { SheetHost } from './components/sheet'
 import type { Toaster } from './components/toast'
@@ -45,6 +45,8 @@ export interface MapControllerDeps {
   /** Shared with the editor, so only one sheet or toast shows at a time. */
   sheets: SheetHost
   toaster: Toaster
+  /** Opens the chore editor for an item. */
+  editChores?: (itemId: Id) => void
 }
 
 export class MapController {
@@ -263,11 +265,14 @@ export class MapController {
           showNotes: !isFloorItem(item),
           ...(filterTaskId ? { filterTaskId } : {}),
         },
-        (notes) => {
-          const current = store.item(itemId)
-          if (!current) return
-          const { notes: _old, ...rest } = current
-          store.updateItem(notes.trim() ? { ...rest, notes } : rest).catch((err) => this.saveFailed(err))
+        {
+          onNotes: (notes) => {
+            const current = store.item(itemId)
+            if (!current) return
+            const { notes: _old, ...rest } = current
+            store.updateItem(notes.trim() ? { ...rest, notes } : rest).catch((err) => this.saveFailed(err))
+          },
+          ...(this.deps.editChores ? { onEditChores: () => this.deps.editChores!(itemId) } : {}),
         },
       ),
     })
@@ -276,9 +281,14 @@ export class MapController {
   // ---- Keeping open UI current ------------------------------------------------------
 
   private onStoreChange(change: StoreChange): void {
-    if (change.kind !== 'events') return
+    if (change.kind !== 'events' && change.kind !== 'tasks') return
     const owner = this.ring.openFor
-    if (owner) this.ring.refresh(this.options(owner))
+    // A chore edit can leave too few or too many chores for a ring; just close it then.
+    if (owner) {
+      const options = this.options(owner)
+      if (options.length < 2 || options.length > MAX_RING_CHORES) this.ring.close()
+      else this.ring.refresh(options)
+    }
     if (this.openList) this.openList.list.refresh(this.options(this.openList.itemId), this.deps.store.now())
   }
 
@@ -316,7 +326,7 @@ export class MapController {
   }
 
   private label(item: Item): string {
-    return isFloorItem(item) ? `${this.roomName(item.roomId)} floor` : itemTypeLabel(item.type)
+    return itemLabel(item, this.deps.store.house.rooms)
   }
 
   private roomName(roomId: Id): string {

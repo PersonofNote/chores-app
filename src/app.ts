@@ -22,6 +22,7 @@ import {
 } from './storage'
 import { SheetHost, el } from './ui/components/sheet'
 import { Toaster } from './ui/components/toast'
+import { ChoreEditor } from './ui/chore-editor'
 import { Editor } from './ui/editor/editor'
 import { connectFeedback } from './ui/feedback'
 import { GestureRecognizer } from './ui/gestures'
@@ -91,7 +92,9 @@ export async function startApp(root: HTMLElement, clock: Clock = systemClock): P
     },
     claimsPointer: (e) => editor?.claims(e) ?? false,
   })
-  controller = new MapController({ store, map, overlay, view: () => viewport.view, palette: theme.palette, sheets, toaster })
+  const choreEditor = new ChoreEditor({ store, sheets, toaster, palette: theme.palette, clock, newId: uuid })
+  const editChores = (itemId: string) => choreEditor.open(itemId)
+  controller = new MapController({ store, map, overlay, view: () => viewport.view, palette: theme.palette, sheets, toaster, editChores })
   editor = new Editor({
     store,
     map,
@@ -101,6 +104,7 @@ export async function startApp(root: HTMLElement, clock: Clock = systemClock): P
     skins,
     view: () => viewport.view,
     render,
+    editChores,
     openSettings: () => {
       controller?.dismiss()
       settings.open()

@@ -92,6 +92,12 @@ No server-side configuration is needed. If your host lets you set cache headers,
 `sw.js` with `Cache-Control: no-cache` so browsers check for updates promptly. Most hosts
 already revalidate it.
 
+**GitHub Pages:** `.github/workflows/deploy.yml` tests, builds and publishes on every push to
+`main`. Turn it on once, in the repo's Settings → Pages → Source: **GitHub Actions**. The site
+is then at `https://<user>.github.io/<repo>/`. The house lives on each device under that exact
+URL, so renaming the repo (or switching hosts) starts you with an empty house. Export a backup
+first and restore it at the new URL.
+
 ### Install on a phone
 
 1. Open the deployed URL.

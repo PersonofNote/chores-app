@@ -7,6 +7,11 @@
       "tasks": [
         { "name": "Vacuum", "intervalDays": 7 },
         { "name": "Mop", "intervalDays": 14 }
+      ],
+      "suggestions": [
+        { "name": "Sweep", "intervalDays": 3 },
+        { "name": "Dust baseboards", "intervalDays": 90 },
+        { "name": "Wash rugs", "intervalDays": 90 }
       ]
     },
     "bed": {
@@ -15,17 +20,30 @@
       "tasks": [
         { "name": "Wash sheets", "intervalDays": 7 },
         { "name": "Rotate mattress", "intervalDays": 90 }
+      ],
+      "suggestions": [
+        { "name": "Vacuum under bed", "intervalDays": 30 },
+        { "name": "Wash duvet", "intervalDays": 90 },
+        { "name": "Wash pillows", "intervalDays": 180 }
       ]
     },
     "sofa": {
       "label": "Sofa",
       "size": { "w": 2, "h": 1 },
-      "tasks": [{ "name": "Vacuum cushions", "intervalDays": 30 }]
+      "tasks": [{ "name": "Vacuum cushions", "intervalDays": 30 }],
+      "suggestions": [
+        { "name": "Wash throws", "intervalDays": 30 },
+        { "name": "Wash cushion covers", "intervalDays": 90 }
+      ]
     },
     "toilet": {
       "label": "Toilet",
       "size": { "w": 1, "h": 1 },
-      "tasks": [{ "name": "Clean toilet", "intervalDays": 7 }]
+      "tasks": [{ "name": "Clean toilet", "intervalDays": 7 }],
+      "suggestions": [
+        { "name": "Clean behind toilet", "intervalDays": 30 },
+        { "name": "Replace toilet brush", "intervalDays": 180 }
+      ]
     },
     "shower": {
       "label": "Shower",
@@ -33,12 +51,21 @@
       "tasks": [
         { "name": "Scrub shower", "intervalDays": 14 },
         { "name": "Descale showerhead", "intervalDays": 180 }
+      ],
+      "suggestions": [
+        { "name": "Wash shower curtain", "intervalDays": 30 },
+        { "name": "Clean drain", "intervalDays": 30 },
+        { "name": "Scrub grout", "intervalDays": 90 }
       ]
     },
     "sink": {
       "label": "Sink",
       "size": { "w": 1, "h": 1 },
-      "tasks": [{ "name": "Clean sink", "intervalDays": 7 }]
+      "tasks": [{ "name": "Clean sink", "intervalDays": 7 }],
+      "suggestions": [
+        { "name": "Clean drain", "intervalDays": 30 },
+        { "name": "Descale faucet", "intervalDays": 90 }
+      ]
     },
     "stove": {
       "label": "Stove",
@@ -46,6 +73,10 @@
       "tasks": [
         { "name": "Wipe stovetop", "intervalDays": 3 },
         { "name": "Clean range hood filter", "intervalDays": 90 }
+      ],
+      "suggestions": [
+        { "name": "Wipe knobs", "intervalDays": 14 },
+        { "name": "Clean oven", "intervalDays": 90 }
       ]
     },
     "fridge": {
@@ -54,22 +85,39 @@
       "tasks": [
         { "name": "Clear out old food", "intervalDays": 7 },
         { "name": "Vacuum coils", "intervalDays": 180 }
+      ],
+      "suggestions": [
+        { "name": "Wipe shelves", "intervalDays": 30 },
+        { "name": "Clean door seals", "intervalDays": 90 }
       ]
     },
     "washing-machine": {
       "label": "Washing machine",
       "size": { "w": 1, "h": 1 },
-      "tasks": [{ "name": "Run cleaning cycle", "intervalDays": 30 }]
+      "tasks": [{ "name": "Run cleaning cycle", "intervalDays": 30 }],
+      "suggestions": [
+        { "name": "Wipe door seal", "intervalDays": 14 },
+        { "name": "Clean detergent drawer", "intervalDays": 30 },
+        { "name": "Clean filter", "intervalDays": 90 }
+      ]
     },
     "plant": {
       "label": "Plant",
       "size": { "w": 1, "h": 1 },
-      "tasks": [{ "name": "Water", "intervalDays": 7 }]
+      "tasks": [{ "name": "Water", "intervalDays": 7 }],
+      "suggestions": [
+        { "name": "Dust leaves", "intervalDays": 30 },
+        { "name": "Fertilize", "intervalDays": 30 },
+        { "name": "Repot", "intervalDays": 365 }
+      ]
     },
     "hvac-filter": {
       "label": "HVAC filter",
       "size": { "w": 1, "h": 1 },
-      "tasks": [{ "name": "Replace filter", "intervalDays": 90 }]
+      "tasks": [{ "name": "Replace filter", "intervalDays": 90 }],
+      "suggestions": [
+        { "name": "Clean vents", "intervalDays": 90 }
+      ]
     },
     "smoke-detector": {
       "label": "Smoke detector",
@@ -77,12 +125,56 @@
       "tasks": [
         { "name": "Test alarm", "intervalDays": 30 },
         { "name": "Replace battery", "intervalDays": 365 }
+      ],
+      "suggestions": [
+        { "name": "Dust detector", "intervalDays": 180 }
       ]
     },
     "water-heater": {
       "label": "Water heater",
       "size": { "w": 1, "h": 1 },
-      "tasks": [{ "name": "Flush tank", "intervalDays": 365 }]
+      "tasks": [{ "name": "Flush tank", "intervalDays": 365 }],
+      "suggestions": [
+        { "name": "Test pressure valve", "intervalDays": 365 }
+      ]
+    },
+    "closet": {
+      "label": "Closet",
+      "size": { "w": 2, "h": 1 },
+      "tasks": [
+        { "name": "Tidy closet", "intervalDays": 30 },
+        { "name": "Declutter closet", "intervalDays": 180 }
+      ],
+      "suggestions": [
+        { "name": "Vacuum closet floor", "intervalDays": 30 },
+        { "name": "Swap seasonal clothes", "intervalDays": 180 }
+      ]
+    },
+    "counter": {
+      "label": "Counter",
+      "size": { "w": 2, "h": 1 },
+      "tasks": [
+        { "name": "Wipe counter", "intervalDays": 3 },
+        { "name": "Clear clutter", "intervalDays": 7 }
+      ],
+      "suggestions": [
+        { "name": "Wash rags", "intervalDays": 3 },
+        { "name": "Disinfect counter", "intervalDays": 7 },
+        { "name": "Declutter", "intervalDays": 7 },
+        { "name": "Clean backsplash", "intervalDays": 30 }
+      ]
+    },
+    "dresser": {
+      "label": "Dresser",
+      "size": { "w": 2, "h": 1 },
+      "tasks": [
+        { "name": "Dust dresser", "intervalDays": 14 },
+        { "name": "Tidy drawers", "intervalDays": 90 }
+      ],
+      "suggestions": [
+        { "name": "Polish wood", "intervalDays": 90 },
+        { "name": "Vacuum behind dresser", "intervalDays": 90 }
+      ]
     }
   }
 }

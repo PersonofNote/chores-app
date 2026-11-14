@@ -51,8 +51,11 @@ export class ViewportController {
       surface.addEventListener(type, fn as EventListener, { signal: this.abort.signal, passive })
     on('pointerdown', (e) => this.onPointerDown(e))
     on('pointermove', (e) => this.onPointerMove(e))
-    on('pointerup', (e) => this.onPointerUp(e))
-    on('pointercancel', (e) => this.onPointerUp(e))
+    // On the window, so a release that lands elsewhere (on a sheet that opened under
+    // the finger after a long-press) still ends that pointer; see GestureRecognizer.
+    const win = surface.ownerDocument.defaultView ?? window
+    win.addEventListener('pointerup', (e) => this.onPointerUp(e), { signal: this.abort.signal, passive: true })
+    win.addEventListener('pointercancel', (e) => this.onPointerUp(e), { signal: this.abort.signal, passive: true })
     on('wheel', (e) => this.onWheel(e), false)
 
     this.resizeObserver = new ResizeObserver(() => {

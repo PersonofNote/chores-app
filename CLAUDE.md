@@ -21,8 +21,9 @@ Design: `House Decay App — Architecture & Roadmap.md`. Current work: `docs/pha
   (`computeHouseStatus`). Undo is a `void` event, never a delete.
 - Layering: `domain` ← `storage` ← `state` ← `render` / `ui` ← `app.ts`. Nothing imports upward;
   `render` never imports `state` or `ui`.
-- Layout rules live in `src/domain/layout.ts`; the editor (`src/ui/editor`) proposes, the
-  rules decide, and `HouseStore` re-checks before saving.
+- Layout rules live in `src/domain/layout.ts`, chore rules in `src/domain/tasks.ts`; the UI
+  (`src/ui/editor`, `src/ui/chore-editor.ts`) proposes, the rules decide, and `HouseStore`
+  re-checks before saving.
 - All writes from the UI go through `HouseStore` (`src/state`). React to changes by
   subscribing; completion animations and sound are wired that way (`ui/feedback.ts`).
 - UI is plain TypeScript + hand-written SVG. No UI framework.

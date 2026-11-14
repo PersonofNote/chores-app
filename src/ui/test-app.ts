@@ -9,6 +9,7 @@ import { openTestRepository } from '../storage/test-fixtures'
 import { SheetHost } from './components/sheet'
 import { Toaster } from './components/toast'
 import type { HouseData } from '../storage'
+import { ChoreEditor } from './chore-editor'
 import { Editor } from './editor/editor'
 import { MapController } from './map-controller'
 import { Preferences } from './preferences'
@@ -37,7 +38,9 @@ export async function testApp(opts: { extraTasks?: (data: ReturnType<typeof buil
   const sheets = new SheetHost(overlay)
   const toaster = new Toaster(overlay)
   const view = () => ({ scale: 1, tx: 0, ty: 0 })
-  const controller = new MapController({ store, map, overlay, view, palette: () => LIGHT_PALETTE, sheets, toaster })
+  const choreEditor = new ChoreEditor({ store, sheets, toaster, palette: () => LIGHT_PALETTE, clock, newId, random: () => 0.5 })
+  const editChores = (itemId: string) => choreEditor.open(itemId)
+  const controller = new MapController({ store, map, overlay, view, palette: () => LIGHT_PALETTE, sheets, toaster, editChores })
   const render = (data: Readonly<HouseData>) => {
     map.setHouse(data)
     map.setStatus(store.status(), { palette: LIGHT_PALETTE })
@@ -55,6 +58,7 @@ export async function testApp(opts: { extraTasks?: (data: ReturnType<typeof buil
     skins: new SkinRegistry(),
     random: () => 0.5,
     openSettings: () => settings.open(),
+    editChores,
   })
 
   const itemOf = (type: string) => house.items.find((i) => i.type === type)!
@@ -79,5 +83,5 @@ export async function testApp(opts: { extraTasks?: (data: ReturnType<typeof buil
     b.click()
   }
 
-  return { store, map, overlay, controller, editor, settings, prefs, reloads, repo, clock, itemOf, roomOf, ui, tap, longPress, settle, click }
+  return { store, map, overlay, controller, editor, settings, choreEditor, prefs, reloads, repo, clock, itemOf, roomOf, ui, tap, longPress, settle, click }
 }

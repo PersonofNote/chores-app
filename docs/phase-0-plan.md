@@ -130,6 +130,12 @@ Known follow-ups found in M7:
 - [x] Mute: Settings → Sound, a per-device preference (`ui/preferences.ts`)
 - [x] Welcome screen offers "Restore from backup…", so a house drawn on a computer can be moved
   to the phone without first creating a placeholder house (`restoreHouse` in `storage/backup.ts`)
+- [x] Furniture: closet, counter and dresser in the library (2 × 1 each), with Lucide icons
+  shirt, spray-can and archive
+- [x] Edit chores per item: rename, change how often (presets or custom days), add (with
+  suggestions from the library and a "Last done?" choice), remove. Opens from an item's details
+  (long-press; floors too) and from the editor's item toolbar. Rules in `domain/tasks.ts`,
+  UI in `ui/chore-editor.ts`
 
 ## M8. Live with it
 - [ ] 8.0 Host it over HTTPS (service workers need it; any static host works, the build uses
@@ -184,4 +190,15 @@ Known follow-ups found in M7:
   sync. Import into a device that already has a *different* house adds a second home, and the
   app has no way to choose between homes yet (it opens the first). Restore on a fresh install
   avoids that.
+- **Chores belong to items, not types.** The library only supplies a new item's starting
+  chores and suggestions; after that each item's chores are its own. Changing the library
+  doesn't touch items already placed.
+- **Chore names are unique per item** (ignoring case and spacing), so history and the ring stay
+  unambiguous. The same name on two items is fine.
+- **Removing a chore keeps its events** in the database and backups, like deleting an item. Its
+  history isn't shown any more; re-adding the same name starts a new chore.
+- **A new chore is saved together with its "Last done?" seed** (one write), so it never shows as
+  unknown, even briefly.
+- **Chore edits are their own store change (`tasks`)**: the map restyles decay without a rebuild,
+  and an open ring refreshes (or closes, if the item no longer has 2–5 chores).
 - **Stage thresholds live in `DecayConfig`** so Phase 0 tuning is a config change.

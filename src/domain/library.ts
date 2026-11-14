@@ -7,7 +7,7 @@
 import defaultLibraryJson from './data/default-library.json'
 import type { IdGenerator } from './time'
 import type { GridSize, Id, Task } from './types'
-import { array, nonEmptyString, object, positiveInt, record, type Validator } from './validate'
+import { array, nonEmptyString, object, optional, positiveInt, record, type Validator } from './validate'
 
 export interface LibraryTask {
   name: string
@@ -17,7 +17,10 @@ export interface LibraryTask {
 export interface LibraryItemType {
   label: string
   size: GridSize
+  /** What a new item of this type starts with. */
   tasks: LibraryTask[]
+  /** Other chores worth offering when adding one to an item of this type. */
+  suggestions?: LibraryTask[]
 }
 
 export interface Library {
@@ -30,13 +33,16 @@ export class LibraryError extends Error {
   override name = 'LibraryError'
 }
 
+const validateLibraryTask = object({ name: nonEmptyString, intervalDays: positiveInt })
+
 const validateLibrary: Validator<Library> = object({
   version: positiveInt,
   items: record(
     object({
       label: nonEmptyString,
       size: object({ w: positiveInt, h: positiveInt }),
-      tasks: array(object({ name: nonEmptyString, intervalDays: positiveInt }), { nonEmpty: true }),
+      tasks: array(validateLibraryTask, { nonEmpty: true }),
+      suggestions: optional(array(validateLibraryTask)),
     }),
   ),
 })
@@ -78,3 +84,22 @@ export function createDefaultTasks(
     kind: 'interval',
   }))
 }
+
+/**
+ * Chores to offer when adding one to an item of `type`: its defaults (so a removed
+ * one can come back), then its suggestions. Names are unique, ignoring case.
+ */
+export function choreSuggestions(type: string, library: Library = defaultLibrary): LibraryTask[] {
+  const entry = library.items[type]
+  if (!entry) return []
+  const seen = new Set<string>()
+  return [...entry.tasks, ...(entry.suggestions ?? [])].filter((t) => {
+    const key = choreNameKey(t.name)
+    if (seen.has(key)) return false
+    seen.add(key)
+    return true
+  })
+}
+
+/** Chore names compare case- and space-insensitively ("Wash rags" = "wash  rags "). */
+export const choreNameKey = (name: string) => name.trim().replace(/\s+/g, ' ').toLowerCase()

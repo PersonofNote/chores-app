@@ -1,5 +1,5 @@
 /** Chore choices as the UI shows them: worst first, with their decay color. */
-import { DEFAULT_DECAY_CONFIG, type DecayConfig, type DecayStatus, type HouseStatus, type Stage, type Task } from '../domain'
+import { DEFAULT_DECAY_CONFIG, isFloorItem, itemTypeLabel, type DecayConfig, type DecayStatus, type HouseStatus, type Item, type Room, type Stage, type Task } from '../domain'
 import { itemDecayStyle, type DecayPalette } from '../render/decay-style'
 
 export interface ChoreOption {
@@ -28,3 +28,8 @@ export function choreOptions(
 /** Chores at or past Due soon. */
 export const isDue = (o: ChoreOption, config: DecayConfig = DEFAULT_DECAY_CONFIG) =>
   (o.status?.pressure ?? 0) >= config.thresholds.dueSoon
+
+/** How an item is named in sheets: its type, or "Kitchen floor" for a floor. */
+export function itemLabel(item: Item, rooms: readonly Room[]): string {
+  return isFloorItem(item) ? `${rooms.find((r) => r.id === item.roomId)?.name ?? ''} floor`.trim() : itemTypeLabel(item.type)
+}

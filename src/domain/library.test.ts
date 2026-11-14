@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { createDefaultTasks, defaultLibrary, LibraryError, parseLibrary } from './library'
+import { choreNameKey, choreSuggestions, createDefaultTasks, defaultLibrary, LibraryError, parseLibrary } from './library'
 import { sequentialIds } from './time'
 import { ValidationError } from './validate'
 
@@ -50,5 +50,41 @@ describe('createDefaultTasks', () => {
 
   it('throws on an unknown type', () => {
     expect(() => createDefaultTasks('i', 'spaceship', sequentialIds())).toThrow(LibraryError)
+  })
+})
+
+describe('choreSuggestions', () => {
+  it('offers the defaults first, then the extras', () => {
+    const names = choreSuggestions('counter').map((t) => t.name)
+    expect(names.slice(0, 2)).toEqual(['Wipe counter', 'Clear clutter'])
+    expect(names).toContain('Wash rags')
+  })
+
+  it('drops repeated names, ignoring case and spacing', () => {
+    const library = parseLibrary({
+      version: 1,
+      items: {
+        x: {
+          label: 'X',
+          size: { w: 1, h: 1 },
+          tasks: [{ name: 'Dust', intervalDays: 7 }],
+          suggestions: [{ name: ' dust ', intervalDays: 14 }, { name: 'Polish', intervalDays: 30 }],
+        },
+      },
+    })
+    expect(choreSuggestions('x', library)).toEqual([
+      { name: 'Dust', intervalDays: 7 },
+      { name: 'Polish', intervalDays: 30 },
+    ])
+  })
+
+  it('has nothing for an unknown type', () => {
+    expect(choreSuggestions('spaceship')).toEqual([])
+  })
+})
+
+describe('choreNameKey', () => {
+  it('ignores case and extra spaces', () => {
+    expect(choreNameKey('  Wash   Rags ')).toBe(choreNameKey('wash rags'))
   })
 })

@@ -2,7 +2,7 @@
 import type { Id, Item, TaskEvent } from '../../domain'
 import type { HistoryEntry } from '../../state/house-store'
 import type { ChoreOption } from '../chores'
-import { el } from '../components/sheet'
+import { button, el } from '../components/sheet'
 import { relativeDay, shortDate } from '../format'
 import { choreDot, choreStatusText } from './chore-status'
 
@@ -28,7 +28,13 @@ const KIND_LABEL: Record<TaskEvent['kind'], string> = {
 /** Logged this much later than it happened = backdated ("Done earlier"). */
 const BACKDATED_MS = 60 * 60 * 1000
 
-export function itemDetailsBody(input: ItemDetailsInput, onNotes: (notes: string) => void): HTMLElement {
+export interface ItemDetailsHandlers {
+  onNotes: (notes: string) => void
+  /** Offer "Edit chores" when set. */
+  onEditChores?: () => void
+}
+
+export function itemDetailsBody(input: ItemDetailsInput, handlers: ItemDetailsHandlers): HTMLElement {
   const { item, options, history, now } = input
   const body = el('div', { className: 'sheet-body' })
 
@@ -42,7 +48,7 @@ export function itemDetailsBody(input: ItemDetailsInput, onNotes: (notes: string
     const save = () => {
       if (notes.value === saved) return
       saved = notes.value
-      onNotes(notes.value)
+      handlers.onNotes(notes.value)
     }
     notes.addEventListener('blur', save)
     notes.addEventListener('change', save)
@@ -60,6 +66,7 @@ export function itemDetailsBody(input: ItemDetailsInput, onNotes: (notes: string
       ]),
     )),
   )
+  if (handlers.onEditChores) body.append(button(options.length ? 'Edit chores' : 'Add chores', handlers.onEditChores))
 
   const list = el('ol', { className: 'history' })
   let filter: Id | '' = input.filterTaskId ?? ''

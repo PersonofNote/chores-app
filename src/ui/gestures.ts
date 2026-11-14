@@ -43,7 +43,8 @@ interface Press {
 
 export class GestureRecognizer {
   private press: Press | null = null
-  private activePointers = 0
+  /** Pointers currently down, wherever they're released (see the constructor). */
+  private readonly pressed = new Set<number>()
   private lastPointerType = 'mouse'
   private readonly abort = new AbortController()
 
@@ -55,8 +56,12 @@ export class GestureRecognizer {
     const opts = { signal: this.abort.signal }
     surface.addEventListener('pointerdown', (e) => this.down(e as PointerEvent), opts)
     surface.addEventListener('pointermove', (e) => this.move(e as PointerEvent), opts)
-    surface.addEventListener('pointerup', (e) => this.up(e as PointerEvent), opts)
-    surface.addEventListener('pointercancel', (e) => this.end(e as PointerEvent), opts)
+    // Releases are watched on the window: a long-press opens a modal sheet under the
+    // finger, so its pointerup lands on the sheet, not the map. Missing it would leave
+    // that finger "down" forever and make every later tap look like a pinch.
+    const win = surface.ownerDocument.defaultView ?? window
+    win.addEventListener('pointerup', (e) => this.up(e), opts)
+    win.addEventListener('pointercancel', (e) => this.end(e), opts)
     // Right-click is long-press on desktop. Touch long-press also raises contextmenu
     // on some platforms; the timer handles that, so only mice get through here.
     surface.addEventListener(
@@ -77,9 +82,9 @@ export class GestureRecognizer {
   }
 
   private down(e: PointerEvent): void {
-    this.activePointers++
+    this.pressed.add(e.pointerId)
     this.lastPointerType = e.pointerType || 'mouse'
-    if (this.activePointers > 1 || e.button !== 0) return this.cancel()
+    if (this.pressed.size > 1 || e.button !== 0) return this.cancel()
     const target = resolveTarget(e.target as Element)
     const start = pointOf(e)
     this.press = {
@@ -108,7 +113,7 @@ export class GestureRecognizer {
   }
 
   private end(e: PointerEvent): void {
-    this.activePointers = Math.max(0, this.activePointers - 1)
+    this.pressed.delete(e.pointerId)
     if (this.press?.pointerId === e.pointerId) this.cancel()
   }
 

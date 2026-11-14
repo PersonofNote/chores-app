@@ -1,5 +1,24 @@
+# Dependencies and build output
 node_modules/
 dist/
-.DS_Store
-*.local
 coverage/
+
+# House data: exported backups hold your real house and chore history
+house-monitor-backup*.json
+
+# Local env and settings (Vite's .env.local, .env.*.local)
+*.local
+.env
+.env.*
+.claude/settings.local.json
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS and editor clutter
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp

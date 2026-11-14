@@ -59,6 +59,8 @@ export interface EditorDeps {
   render: (house: Readonly<HouseData>) => void
   /** Opens the Settings sheet (name, size, sound, backup). */
   openSettings: () => void
+  /** Opens the chore editor for an item. */
+  editChores?: (itemId: Id) => void
   clock: Clock
   newId: IdGenerator
   random?: Random
@@ -490,6 +492,7 @@ export class Editor {
       const item = store.item(sel.itemId)
       if (!item) return
       bar(itemTypeLabel(item.type), `${this.room(item.roomId)?.name ?? ''} · drag to move`, [
+        ...(this.deps.editChores ? [button('Chores', () => this.deps.editChores!(item.id), 'bar-button')] : []),
         button('Rotate', () => this.rotateItem(item.id), 'bar-button'),
         button('Delete', () => this.deleteItem(item.id), 'bar-button danger'),
       ])

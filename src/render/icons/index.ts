@@ -29,6 +29,9 @@ export const ICON_FOR_TYPE: Readonly<Record<string, string>> = {
   'hvac-filter': 'air-vent',
   'smoke-detector': 'alarm-smoke',
   'water-heater': 'heater',
+  closet: 'shirt',
+  counter: 'spray-can',
+  dresser: 'archive',
 }
 
 /** Icon source grid: Lucide draws on 24 × 24. */

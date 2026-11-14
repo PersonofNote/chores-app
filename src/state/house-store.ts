@@ -7,16 +7,19 @@
  * every completion path goes through here, they all animate and undo the same way.
  */
 import {
+  checkChore,
   checkItem,
   checkRoom,
   computeHouseStatus,
   DEFAULT_DECAY_CONFIG,
+  describeChoreProblem,
   describeProblem,
   effectiveEvents,
   isFloorItem,
   recordDone,
   recordSkip,
   recordVoid,
+  type ChoreProblem,
   type DecayConfig,
   type EffectiveEvent,
   type EventDeps,
@@ -28,6 +31,8 @@ import {
   type Room,
   type Task,
   type TaskEvent,
+  tidyChoreName,
+  validateTask,
 } from '../domain'
 import type { HouseData, Repository } from '../storage'
 
@@ -36,14 +41,24 @@ export type StoreChange =
   | { kind: 'events'; events: readonly TaskEvent[] }
   /** An item's details changed without affecting the map (e.g. notes). */
   | { kind: 'item'; item: Item }
-  /** Home, rooms, items or tasks changed shape: rebuild the map. */
+  /** Home, rooms or items changed shape: rebuild the map. */
   | { kind: 'layout' }
+  /** An item's chores were added, edited or removed: decay may have changed, the map's shape hasn't. */
+  | { kind: 'tasks'; itemId: Id }
 
 /** Thrown when a layout write would break a layout rule (see domain/layout.ts). */
 export class LayoutError extends Error {
   override name = 'LayoutError'
   constructor(readonly problem: LayoutProblem) {
     super(describeProblem(problem))
+  }
+}
+
+/** Thrown when a chore edit breaks a chore rule (see domain/tasks.ts). */
+export class ChoreError extends Error {
+  override name = 'ChoreError'
+  constructor(readonly problem: ChoreProblem) {
+    super(describeChoreProblem(problem))
   }
 }
 
@@ -118,6 +133,56 @@ export class HouseStore {
     await this.repo.save({ items: [item] })
     this.data.items[index] = item
     this.emit({ kind: 'item', item })
+  }
+
+  // ---- Chores --------------------------------------------------------------------
+  // Each item has its own chores; these change them. Names are tidied, and every op
+  // checks the chore rules before saving.
+
+  /**
+   * Adds a chore to an existing item, with its "Last done?" seed (if any) in the same
+   * write, so the new chore never shows as unknown.
+   */
+  async addTask(task: Task, seed: readonly TaskEvent[] = []): Promise<Task> {
+    if (!this.item(task.itemId)) throw new Error(`Unknown item ${task.itemId}`)
+    if (this.task(task.id)) throw new Error(`Task ${task.id} already exists`)
+    if (seed.some((e) => e.taskId !== task.id)) throw new Error('Seed events must be for the new task')
+    const tidy = this.checkedTask(task)
+    await this.repo.save({ tasks: [tidy], events: [...seed] })
+    this.data.tasks.push(tidy)
+    this.data.events.push(...seed)
+    this.emit({ kind: 'tasks', itemId: tidy.itemId })
+    return tidy
+  }
+
+  /** Renames a chore or changes how often it's due. Its history is kept. */
+  async updateTask(task: Task): Promise<Task> {
+    const index = this.data.tasks.findIndex((t) => t.id === task.id)
+    const current = this.data.tasks[index]
+    if (!current) throw new Error(`Unknown task ${task.id}`)
+    if (current.itemId !== task.itemId) throw new Error('A chore can’t move to another item')
+    const tidy = this.checkedTask(task)
+    await this.repo.save({ tasks: [tidy] })
+    this.data.tasks[index] = tidy
+    this.emit({ kind: 'tasks', itemId: tidy.itemId })
+    return tidy
+  }
+
+  /** Removes a chore. Its events stay in the log (and in backups) as history. */
+  async deleteTask(taskId: Id): Promise<void> {
+    const task = this.task(taskId)
+    if (!task) return
+    await this.repo.deleteTask(taskId)
+    replaceAll(this.data.tasks, this.data.tasks.filter((t) => t.id !== taskId))
+    this.emit({ kind: 'tasks', itemId: task.itemId })
+  }
+
+  private checkedTask(task: Task): Task {
+    const tidy = { ...task, name: tidyChoreName(task.name) }
+    // Chore rules first, so the user gets a readable reason; then the full shape check.
+    const problem = checkChore(tidy, this.tasksForItem(task.itemId))
+    if (problem) throw new ChoreError(problem)
+    return validateTask(tidy, 'task')
   }
 
   // ---- Layout -------------------------------------------------------------------

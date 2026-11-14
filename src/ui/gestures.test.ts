@@ -59,6 +59,18 @@ describe('GestureRecognizer', () => {
     expect(gestures.map((g) => g.type)).toEqual(['long-press'])
   })
 
+  it('a release that lands off the map (on a sheet the long-press opened) still ends the press', () => {
+    const sheet = document.createElement('dialog')
+    document.body.append(sheet)
+    fire(f.hit, 'pointerdown', { pointerId: 7 })
+    vi.advanceTimersByTime(LONG_PRESS_MS)
+    fire(sheet, 'pointerup', { pointerId: 7 })
+    // A fresh touch has a new id; it must not look like a second finger.
+    fire(f.hit, 'pointerdown', { pointerId: 8 })
+    fire(f.hit, 'pointerup', { pointerId: 8 })
+    expect(gestures.map((g) => g.type)).toEqual(['long-press', 'tap'])
+  })
+
   it('moving past the drag threshold cancels (it is a pan)', () => {
     fire(f.hit, 'pointerdown')
     fire(f.hit, 'pointermove', { clientX: 30 })

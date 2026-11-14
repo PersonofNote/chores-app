@@ -22,14 +22,7 @@ export interface SeedPrompt {
 export function seedPrompt(tasks: readonly Task[], onDone: () => void): SeedPrompt {
   const answers = new Map<Id, LastDoneAnswer>(tasks.map((t) => [t.id, 'no-idea']))
   const rows = tasks.map((task) => {
-    const group = el('div', { className: 'segmented', attrs: { role: 'radiogroup', 'aria-label': `${task.name}: last done` } })
-    for (const answer of LAST_DONE_ANSWERS) {
-      const id = `seed-${task.id}-${answer}`
-      const input = el('input', { attrs: { type: 'radio', name: `seed-${task.id}`, id, value: answer } })
-      input.checked = answer === 'no-idea'
-      input.addEventListener('change', () => answers.set(task.id, answer))
-      group.append(input, el('label', { text: ANSWER_LABEL[answer], attrs: { for: id } }))
-    }
+    const group = lastDoneChoice(`seed-${task.id}`, `${task.name}: last done`, (answer) => answers.set(task.id, answer))
     return el('li', { className: 'seed-row' }, [
       el('span', { className: 'chore-row-text' }, [
         el('span', { className: 'chore-row-name', text: task.name }),
@@ -44,4 +37,17 @@ export function seedPrompt(tasks: readonly Task[], onDone: () => void): SeedProm
     button('Save', onDone, 'sheet-button primary'),
   ])
   return { body, answers: () => new Map(answers) }
+}
+
+/** This week / This month / No idea, starting on "No idea". `key` must be unique on the page. */
+export function lastDoneChoice(key: string, label: string, onChange: (answer: LastDoneAnswer) => void): HTMLElement {
+  const group = el('div', { className: 'segmented', attrs: { role: 'radiogroup', 'aria-label': label } })
+  for (const answer of LAST_DONE_ANSWERS) {
+    const id = `${key}-${answer}`
+    const input = el('input', { attrs: { type: 'radio', name: key, id, value: answer } })
+    input.checked = answer === 'no-idea'
+    input.addEventListener('change', () => onChange(answer))
+    group.append(input, el('label', { text: ANSWER_LABEL[answer], attrs: { for: id } }))
+  }
+  return group
 }
