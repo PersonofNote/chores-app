@@ -130,8 +130,11 @@ Known follow-ups found in M7:
 - [x] Mute: Settings → Sound, a per-device preference (`ui/preferences.ts`)
 - [x] Welcome screen offers "Restore from backup…", so a house drawn on a computer can be moved
   to the phone without first creating a placeholder house (`restoreHouse` in `storage/backup.ts`)
-- [x] Furniture: closet, counter, dresser, table and desk (2 × 1 each) and chair (1 × 1) in the
-  library, with Lucide icons shirt, spray-can, archive, utensils, lamp-desk and armchair
+- [x] Furniture: closet, counter, dresser, table, desk, shelf and cabinet (2 × 1 each) and chair
+  (1 × 1) in the library, with Lucide icons shirt, spray-can, archive, utensils, lamp-desk,
+  library-big, columns-2 and armchair. Counters suggest cabinet chores (kitchen cabinets sit
+  under the counter on the map); freestanding storage (armoire, pantry, sideboard) is a
+  cabinet with a name
 - [x] Edit chores per item: rename, change how often (presets or custom days), add (with
   suggestions from the library and a "Last done?" choice), remove. Opens from an item's details
   (long-press; floors too) and from the editor's item toolbar. Rules in `domain/tasks.ts`,

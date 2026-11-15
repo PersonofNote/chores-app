@@ -161,7 +161,9 @@
         { "name": "Wash rags", "intervalDays": 3 },
         { "name": "Disinfect counter", "intervalDays": 7 },
         { "name": "Declutter", "intervalDays": 7 },
-        { "name": "Clean backsplash", "intervalDays": 30 }
+        { "name": "Clean backsplash", "intervalDays": 30 },
+        { "name": "Wipe cabinet fronts", "intervalDays": 14 },
+        { "name": "Organize cabinets", "intervalDays": 90 }
       ]
     },
     "dresser": {
@@ -211,6 +213,33 @@
         { "name": "Vacuum seat", "intervalDays": 30 },
         { "name": "Wash seat cushion", "intervalDays": 90 },
         { "name": "Tighten screws", "intervalDays": 180 }
+      ]
+    },
+    "shelf": {
+      "label": "Shelf",
+      "size": { "w": 2, "h": 1 },
+      "tasks": [
+        { "name": "Dust shelves", "intervalDays": 14 },
+        { "name": "Tidy shelves", "intervalDays": 30 }
+      ],
+      "suggestions": [
+        { "name": "Dust books", "intervalDays": 90 },
+        { "name": "Sort books", "intervalDays": 90 },
+        { "name": "Declutter", "intervalDays": 180 }
+      ]
+    },
+    "cabinet": {
+      "label": "Cabinet",
+      "size": { "w": 2, "h": 1 },
+      "tasks": [
+        { "name": "Wipe doors", "intervalDays": 14 },
+        { "name": "Organize inside", "intervalDays": 90 }
+      ],
+      "suggestions": [
+        { "name": "Dust top", "intervalDays": 30 },
+        { "name": "Check expiry dates", "intervalDays": 90 },
+        { "name": "Wipe shelves inside", "intervalDays": 90 },
+        { "name": "Declutter", "intervalDays": 180 }
       ]
     }
   }

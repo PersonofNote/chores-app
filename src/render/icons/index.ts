@@ -36,6 +36,8 @@ export const ICON_FOR_TYPE: Readonly<Record<string, string>> = {
   table: 'utensils',
   desk: 'lamp-desk',
   chair: 'armchair',
+  shelf: 'library-big',
+  cabinet: 'columns-2',
 }
 
 /** Icon source grid: Lucide draws on 24 × 24. */
