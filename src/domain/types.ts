@@ -43,6 +43,8 @@ export interface Item {
   roomId: Id
   /** Library key, e.g. 'bed', 'fridge', 'hvac-filter'. Drives default tasks. */
   type: string
+  /** What you call it ("Armoire", "Left nightstand"). Absent: the type's label. */
+  name?: string
   /** Renderer key, e.g. 'bed.icon' now, 'bed.wood-queen' later. */
   skin: string
   /** Reserved for the sprite phase; color carries decay in the MVP. */

@@ -6,7 +6,7 @@
  */
 import defaultLibraryJson from './data/default-library.json'
 import type { IdGenerator } from './time'
-import type { GridSize, Id, Task } from './types'
+import type { GridSize, Id, Item, Task } from './types'
 import { array, nonEmptyString, object, optional, positiveInt, record, type Validator } from './validate'
 
 export interface LibraryTask {
@@ -65,6 +65,14 @@ export const isFloorItem = (item: { type: string }) => item.type === FLOOR_TYPE
 /** Display label for an item type, falling back to the raw type key. */
 export function itemTypeLabel(type: string, library: Library = defaultLibrary): string {
   return library.items[type]?.label ?? type
+}
+
+/** Longest item name, in characters. */
+export const MAX_ITEM_NAME = 40
+
+/** An item's name: what you called it, else its type's label. */
+export function itemName(item: Pick<Item, 'type' | 'name'>, library: Library = defaultLibrary): string {
+  return item.name?.trim() || itemTypeLabel(item.type, library)
 }
 
 /** Creates an item's default tasks from its library type. */

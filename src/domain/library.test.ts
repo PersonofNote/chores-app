@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { choreNameKey, choreSuggestions, createDefaultTasks, defaultLibrary, LibraryError, parseLibrary } from './library'
+import { choreNameKey, choreSuggestions, createDefaultTasks, defaultLibrary, itemName, LibraryError, parseLibrary } from './library'
 import { sequentialIds } from './time'
 import { ValidationError } from './validate'
 
@@ -86,5 +86,13 @@ describe('choreSuggestions', () => {
 describe('choreNameKey', () => {
   it('ignores case and extra spaces', () => {
     expect(choreNameKey('  Wash   Rags ')).toBe(choreNameKey('wash rags'))
+  })
+})
+
+describe('itemName', () => {
+  it('is what you called it, else the type label', () => {
+    expect(itemName({ type: 'dresser', name: 'Armoire' })).toBe('Armoire')
+    expect(itemName({ type: 'dresser' })).toBe('Dresser')
+    expect(itemName({ type: 'dresser', name: '  ' })).toBe('Dresser')
   })
 })

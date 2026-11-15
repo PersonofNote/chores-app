@@ -32,6 +32,8 @@ export interface ItemDetailsHandlers {
   onNotes: (notes: string) => void
   /** Offer "Edit chores" when set. */
   onEditChores?: () => void
+  /** Offer "Rename" when set (not for floors). */
+  onRename?: () => void
 }
 
 export function itemDetailsBody(input: ItemDetailsInput, handlers: ItemDetailsHandlers): HTMLElement {
@@ -66,7 +68,11 @@ export function itemDetailsBody(input: ItemDetailsInput, handlers: ItemDetailsHa
       ]),
     )),
   )
-  if (handlers.onEditChores) body.append(button(options.length ? 'Edit chores' : 'Add chores', handlers.onEditChores))
+  const actions = [
+    ...(handlers.onEditChores ? [button(options.length ? 'Edit chores' : 'Add chores', handlers.onEditChores)] : []),
+    ...(handlers.onRename ? [button('Rename', handlers.onRename)] : []),
+  ]
+  if (actions.length) body.append(el('div', { className: 'sheet-row' }, actions))
 
   const list = el('ol', { className: 'history' })
   let filter: Id | '' = input.filterTaskId ?? ''

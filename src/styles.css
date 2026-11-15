@@ -463,10 +463,10 @@ button, input, select, textarea { font: inherit; color: inherit; }
 
 .toolbar-label { display: flex; flex-direction: column; gap: 2px; font-size: 14px; }
 .toolbar-label span { color: var(--label); font-size: 13px; }
-.toolbar-actions { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 2px; }
+.toolbar-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 
 /* While the editor toolbar shows, toasts sit above it. */
-.overlay:has(.editor-toolbar:not([hidden])) .toast { bottom: calc(140px + env(safe-area-inset-bottom)); }
+.overlay:has(.editor-toolbar:not([hidden])) .toast { bottom: calc(196px + env(safe-area-inset-bottom)); }
 
 .editor-overlay .selection {
   fill: none;

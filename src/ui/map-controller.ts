@@ -25,6 +25,7 @@ import { choreList, type ChoreList } from './panels/chore-list'
 import { choreMenuBody } from './panels/chore-menu'
 import { roomChecklistBody, type ChecklistEntry } from './panels/room-checklist'
 import { itemDetailsBody } from './panels/item-details'
+import { openItemRename } from './item-name'
 import { screenToContent, type ViewState } from './viewport-math'
 
 /** Most chores a ring shows before falling back to a list. */
@@ -273,6 +274,15 @@ export class MapController {
             store.updateItem(notes.trim() ? { ...rest, notes } : rest).catch((err) => this.saveFailed(err))
           },
           ...(this.deps.editChores ? { onEditChores: () => this.deps.editChores!(itemId) } : {}),
+          ...(isFloorItem(item)
+            ? {}
+            : {
+                onRename: () =>
+                  openItemRename({ store, sheets: this.sheets }, itemId, {
+                    saved: () => this.openDetails(itemId, filterTaskId),
+                    failed: (err) => this.saveFailed(err),
+                  }),
+              }),
         },
       ),
     })

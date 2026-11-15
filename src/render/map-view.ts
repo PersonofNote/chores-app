@@ -17,7 +17,7 @@
 import {
   DEFAULT_DECAY_CONFIG,
   isFloorItem,
-  itemTypeLabel,
+  itemName,
   type DecayConfig,
   type HouseStatus,
   type Home,
@@ -71,7 +71,7 @@ export class MapView {
 
   constructor(
     private readonly skins: SkinRegistry,
-    private readonly labelFor: (type: string) => string = itemTypeLabel,
+    private readonly labelFor: (item: Item) => string = itemName,
   ) {
     this.layers = Object.fromEntries(
       LAYERS.map((name) => [name, svg('g', { class: `layer layer-${name}` })]),
@@ -214,7 +214,7 @@ export class MapView {
   private addItem(item: Item): void {
     const bounds = gridToUnits(footprint(item))
     const c = center(bounds)
-    const label = this.labelFor(item.type)
+    const label = this.labelFor(item)
     const skin = this.skins.resolve(item)({
       item,
       width: item.size.w * CELL,

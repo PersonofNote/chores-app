@@ -16,6 +16,7 @@ import {
   describeProblem,
   effectiveEvents,
   isFloorItem,
+  MAX_ITEM_NAME,
   recordDone,
   recordSkip,
   recordVoid,
@@ -125,6 +126,22 @@ export class HouseStore {
   undo(events: readonly TaskEvent[]): Promise<TaskEvent[]> {
     const live = new Set(effectiveEvents(this.data.events).map((e) => e.id))
     return this.append(events.filter((e) => live.has(e.id)).map((e) => recordVoid(e, this.deps)))
+  }
+
+  /**
+   * Names an item ("Armoire"); an empty name goes back to its type's label. A layout
+   * change, since the map's labels show it.
+   */
+  async renameItem(itemId: Id, name: string): Promise<Item> {
+    const index = this.data.items.findIndex((i) => i.id === itemId)
+    if (index < 0) throw new Error(`Unknown item ${itemId}`)
+    const tidy = name.trim().replace(/\s+/g, ' ').slice(0, MAX_ITEM_NAME)
+    const { name: _old, ...rest } = this.data.items[index]!
+    const item: Item = tidy ? { ...rest, name: tidy } : rest
+    await this.repo.save({ items: [item] })
+    this.data.items[index] = item
+    this.emit({ kind: 'layout' })
+    return item
   }
 
   async updateItem(item: Item): Promise<void> {

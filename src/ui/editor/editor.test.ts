@@ -167,6 +167,29 @@ describe('Editor', () => {
     expect(a.store.item(bed.id)!.size).toEqual({ w: 3, h: 3 })
   })
 
+  it('renames a selected item, and clearing the name goes back to its type', async () => {
+    const a = await app()
+    const bed = a.itemOf('bed')
+    a.editor.select({ kind: 'item', itemId: bed.id })
+    a.click('Rename')
+    const input = () => a.ui.sheet()!.querySelector<HTMLInputElement>('[aria-label="Item name"]')!
+    expect(input().placeholder).toBe('Bed')
+    input().value = 'Guest bed'
+    a.click('Save')
+    await a.settle()
+    expect(a.store.item(bed.id)?.name).toBe('Guest bed')
+    expect(a.ui.sheet()).toBeNull()
+    expect(a.overlay.querySelector('.toolbar-label strong')?.textContent).toBe('Guest bed')
+    expect(a.map.layers.ui.querySelector(`.hit[data-item-id="${bed.id}"]`)?.getAttribute('aria-label')).toBe('Guest bed')
+
+    a.click('Rename')
+    expect(input().value).toBe('Guest bed')
+    input().value = ''
+    a.click('Save')
+    await a.settle()
+    expect(a.overlay.querySelector('.toolbar-label strong')?.textContent).toBe('Bed')
+  })
+
   it('reports layout problems instead of saving them', async () => {
     const a = await app()
     await a.store.updateHome({ ...a.store.house.home, gridSize: { w: 14, h: 10 } })

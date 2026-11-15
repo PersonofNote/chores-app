@@ -111,6 +111,7 @@ export const validateItem: Validator<Item> = object({
   id: nonEmptyString,
   roomId: nonEmptyString,
   type: nonEmptyString,
+  name: optional(string),
   skin: nonEmptyString,
   tint: optional(string),
   cell: gridCell,

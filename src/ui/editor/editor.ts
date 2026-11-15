@@ -18,6 +18,7 @@ import {
   findRoomSpot,
   FLOOR_TYPE,
   isFloorItem,
+  itemName,
   itemTypeLabel,
   roomAt,
   seedTasks,
@@ -40,6 +41,7 @@ import type { HouseData } from '../../storage'
 import { button, el, type SheetHost } from '../components/sheet'
 import type { Toaster } from '../components/toast'
 import type { Gesture } from '../gestures'
+import { openItemRename } from '../item-name'
 import { confirmBody, libraryPickerBody, roomNameBody } from '../panels/editor-panels'
 import { seedPrompt } from '../panels/seed-prompt'
 import { screenToContent, type ViewState } from '../viewport-math'
@@ -289,10 +291,17 @@ export class Editor {
     this.run(() => this.deps.store.placeItem({ ...item, rotation }).then(() => {}))
   }
 
+  renameItem(itemId: Id): void {
+    openItemRename(this.deps, itemId, {
+      saved: () => this.deps.sheets.close(),
+      failed: (err) => this.failed(err),
+    })
+  }
+
   deleteItem(itemId: Id): void {
     const item = this.deps.store.item(itemId)
     if (!item) return
-    this.confirm(`Delete ${itemTypeLabel(item.type)}? Past history stays in backups.`, 'Delete', async () => {
+    this.confirm(`Delete ${itemName(item)}? Past history stays in backups.`, 'Delete', async () => {
       await this.deps.store.deleteItem(itemId)
       this.select(null)
     })
@@ -506,8 +515,9 @@ export class Editor {
     } else {
       const item = store.item(sel.itemId)
       if (!item) return
-      bar(itemTypeLabel(item.type), `${this.room(item.roomId)?.name ?? ''} · drag to move, corners to resize`, [
+      bar(itemName(item), `${this.room(item.roomId)?.name ?? ''} · drag to move, corners to resize`, [
         ...(this.deps.editChores ? [button('Chores', () => this.deps.editChores!(item.id), 'bar-button')] : []),
+        button('Rename', () => this.renameItem(item.id), 'bar-button'),
         button('Rotate', () => this.rotateItem(item.id), 'bar-button'),
         button('Delete', () => this.deleteItem(item.id), 'bar-button danger'),
       ])

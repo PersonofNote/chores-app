@@ -148,6 +148,24 @@ describe('ChoreEditor', () => {
     expect(a.ui.ringButtons()).toHaveLength(0)
   })
 
+  it('renames from the details sheet, which then shows the new name', async () => {
+    const a = await app()
+    a.longPress({ kind: 'item', itemId: a.bed.id })
+    a.click('Rename')
+    a.type('Item name', 'Guest bed')
+    a.click('Save')
+    await a.settle()
+    expect(a.title()).toBe('Guest bed')
+    a.click('Edit chores')
+    expect(a.title()).toBe('Guest bed')
+  })
+
+  it('floors have no Rename', async () => {
+    const a = await app()
+    a.longPress({ kind: 'floor', roomId: a.bed.roomId })
+    expect([...a.ui.sheet()!.querySelectorAll('button')].map((b) => b.textContent)).not.toContain('Rename')
+  })
+
   it('offers "Add chores" for an item with none', async () => {
     const a = await app()
     for (const t of a.store.tasksForItem(a.bed.id)) await a.store.deleteTask(t.id)

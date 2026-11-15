@@ -97,3 +97,22 @@ describe('HouseStore chores', () => {
     expect(changes).toEqual([])
   })
 })
+
+describe('HouseStore item names', () => {
+  it('names an item (tidied), saves it, and redraws the map', async () => {
+    const { store, changes, saved } = await setup()
+    const item = await store.renameItem('bed', '  Guest   bed ')
+    expect(item.name).toBe('Guest bed')
+    expect(store.item('bed')?.name).toBe('Guest bed')
+    expect((await saved()).items.find((i) => i.id === 'bed')?.name).toBe('Guest bed')
+    expect(changes).toContainEqual({ kind: 'layout' })
+  })
+
+  it('an empty name goes back to the type label', async () => {
+    const { store, saved } = await setup()
+    await store.renameItem('bed', 'Guest bed')
+    await store.renameItem('bed', '   ')
+    expect(store.item('bed')).not.toHaveProperty('name')
+    expect((await saved()).items.find((i) => i.id === 'bed')).not.toHaveProperty('name')
+  })
+})

@@ -139,6 +139,9 @@ Known follow-ups found in M7:
 - [x] Resize items: a selected item has corner handles like a room (`resize-item` in
   `ui/editor/drag.ts`); the layout rules already covered any size. Icons stop growing past
   2 cells (`MAX_ICON_CELLS`), so a big bed is a big outline with a normal icon
+- [x] Name items: optional `Item.name` ("Armoire", "Guest bed"), falling back to the type's
+  label (`itemName`). Rename from the editor's item toolbar or the details sheet
+  (`ui/item-name.ts`); floors keep "Kitchen floor"
 
 ## M8. Live with it
 - [ ] 8.0 Host it over HTTPS (service workers need it; any static host works, the build uses
@@ -206,4 +209,7 @@ Known follow-ups found in M7:
   and an open ring refreshes (or closes, if the item no longer has 2–5 chores).
 - **An item's size is its own.** The library size is only where a new item starts, like its
   chores. `size` stays the unrotated footprint, so resizing a turned item swaps the result back.
+- **A new item type only when its chores differ.** Looks (armoire vs dresser) are a skin, and
+  telling two alike apart is a name. Kitchen cabinets ride on the counter (cabinet chores as
+  counter suggestions) because they'd overlap it on a top-down grid.
 - **Stage thresholds live in `DecayConfig`** so Phase 0 tuning is a config change.
