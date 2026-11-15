@@ -6,6 +6,7 @@
 import {
   checkItem,
   checkRoom,
+  footprint,
   isFloorItem,
   moveItem,
   moveRoom,
@@ -24,6 +25,7 @@ export type DragTarget =
   | { kind: 'move-room'; room: Room; items: readonly Item[] }
   | { kind: 'resize'; room: Room; rectIndex: number; corner: Corner; floor: Item | undefined }
   | { kind: 'move-item'; item: Item }
+  | { kind: 'resize-item'; item: Item; corner: Corner }
 
 export interface Proposal {
   rooms: Room[]
@@ -56,7 +58,19 @@ export function propose(t: DragTarget, dx: number, dy: number): Proposal {
     }
     case 'move-item':
       return { rooms: [], items: [moveItem(t.item, dx, dy)] }
+    case 'resize-item':
+      return { rooms: [], items: [resizeItem(t.item, t.corner, dx, dy)] }
   }
+}
+
+/**
+ * Resizes an item from a corner of its footprint (what's on screen). `size` is the
+ * unrotated footprint, so a quarter-turned item stores the result swapped back.
+ */
+export function resizeItem(item: Item, corner: Corner, dx: number, dy: number): Item {
+  const r = resizeRect(footprint(item), corner, dx, dy)
+  const turned = item.rotation === 90 || item.rotation === 270
+  return { ...item, cell: { x: r.x, y: r.y }, size: turned ? { w: r.h, h: r.w } : { w: r.w, h: r.h } }
 }
 
 export type Checked = { ok: true; proposal: Proposal } | { ok: false; problem: LayoutProblem }

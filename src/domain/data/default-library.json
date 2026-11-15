@@ -175,6 +175,43 @@
         { "name": "Polish wood", "intervalDays": 90 },
         { "name": "Vacuum behind dresser", "intervalDays": 90 }
       ]
+    },
+    "table": {
+      "label": "Table",
+      "size": { "w": 2, "h": 1 },
+      "tasks": [
+        { "name": "Wipe table", "intervalDays": 3 },
+        { "name": "Clear clutter", "intervalDays": 7 }
+      ],
+      "suggestions": [
+        { "name": "Wash placemats", "intervalDays": 14 },
+        { "name": "Polish table", "intervalDays": 30 },
+        { "name": "Wipe table legs", "intervalDays": 30 }
+      ]
+    },
+    "desk": {
+      "label": "Desk",
+      "size": { "w": 2, "h": 1 },
+      "tasks": [
+        { "name": "Clear desk", "intervalDays": 7 },
+        { "name": "Dust desk", "intervalDays": 14 }
+      ],
+      "suggestions": [
+        { "name": "Sort papers", "intervalDays": 14 },
+        { "name": "Clean keyboard", "intervalDays": 30 },
+        { "name": "Wipe screen", "intervalDays": 30 },
+        { "name": "Tidy cables", "intervalDays": 90 }
+      ]
+    },
+    "chair": {
+      "label": "Chair",
+      "size": { "w": 1, "h": 1 },
+      "tasks": [{ "name": "Wipe chair", "intervalDays": 30 }],
+      "suggestions": [
+        { "name": "Vacuum seat", "intervalDays": 30 },
+        { "name": "Wash seat cushion", "intervalDays": 90 },
+        { "name": "Tighten screws", "intervalDays": 180 }
+      ]
     }
   }
 }

@@ -381,9 +381,12 @@ export class Editor {
     if (!element || !sel) return null
     const { store } = this.deps
     if (sel.kind === 'item') {
-      const hit = element.closest<SVGElement>('[data-item-id]')
       const item = store.item(sel.itemId)
-      return hit?.dataset.itemId === sel.itemId && item ? { kind: 'move-item', item } : null
+      if (!item) return null
+      const corner = element.closest<SVGElement>('.handle[data-corner]')
+      if (corner) return corner.dataset.itemId === item.id ? { kind: 'resize-item', item, corner: corner.dataset.corner as Corner } : null
+      const hit = element.closest<SVGElement>('[data-item-id]')
+      return hit?.dataset.itemId === sel.itemId ? { kind: 'move-item', item } : null
     }
     const room = this.room(sel.roomId)
     if (!room) return null
@@ -423,11 +426,30 @@ export class Editor {
     const sel = this.selection
     const house = this.drag?.preview ? this.withProposal(this.drag.preview) : this.deps.store.house
 
+    /**
+     * `outset` pushes each touch area out past its corner (the dot stays put), so on a
+     * small item the middle is still free for moving it.
+     */
+    const handles = (r: { x: number; y: number; w: number; h: number }, attrs: Record<string, string | number>, outset = 0) => {
+      const o = outset / scale
+      for (const corner of CORNERS) {
+        const west = corner.endsWith('w')
+        const north = corner.startsWith('n')
+        const cx = west ? r.x : r.x + r.w
+        const cy = north ? r.y : r.y + r.h
+        group.append(svg('g', { class: 'handle', 'data-corner': corner, ...attrs }, [
+          svg('circle', { class: 'handle-hit', cx: cx + (west ? -o : o), cy: cy + (north ? -o : o), r: HANDLE_HIT_PX / scale }),
+          svg('circle', { class: 'handle-dot', cx, cy, r: HANDLE_PX / scale }),
+        ]))
+      }
+    }
+
     if (sel.kind === 'item') {
       const item = house.items.find((i) => i.id === sel.itemId)
       if (item) {
         const r = gridToUnits(footprint(item))
         group.append(svg('rect', { class: 'selection', x: r.x, y: r.y, width: r.w, height: r.h, rx: 6 }))
+        if (!isFloorItem(item)) handles(r, { 'data-item-id': item.id }, HANDLE_HIT_PX / 2)
       }
     } else {
       const room = house.rooms.find((r) => r.id === sel.roomId)
@@ -437,14 +459,7 @@ export class Editor {
           class: `selection${i === sel.rectIndex ? ' current' : ''}`,
           x: r.x, y: r.y, width: r.w, height: r.h,
         }))
-        for (const corner of CORNERS) {
-          const cx = corner.endsWith('w') ? r.x : r.x + r.w
-          const cy = corner.startsWith('n') ? r.y : r.y + r.h
-          group.append(svg('g', { class: 'handle', 'data-corner': corner, 'data-rect': i }, [
-            svg('circle', { class: 'handle-hit', cx, cy, r: HANDLE_HIT_PX / scale }),
-            svg('circle', { class: 'handle-dot', cx, cy, r: HANDLE_PX / scale }),
-          ]))
-        }
+        handles(r, { 'data-rect': i })
       })
     }
     map.layers.ui.append(group)
@@ -491,7 +506,7 @@ export class Editor {
     } else {
       const item = store.item(sel.itemId)
       if (!item) return
-      bar(itemTypeLabel(item.type), `${this.room(item.roomId)?.name ?? ''} · drag to move`, [
+      bar(itemTypeLabel(item.type), `${this.room(item.roomId)?.name ?? ''} · drag to move, corners to resize`, [
         ...(this.deps.editChores ? [button('Chores', () => this.deps.editChores!(item.id), 'bar-button')] : []),
         button('Rotate', () => this.rotateItem(item.id), 'bar-button'),
         button('Delete', () => this.deleteItem(item.id), 'bar-button danger'),

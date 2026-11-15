@@ -3,7 +3,8 @@ import { describe, expect, it } from 'vitest'
 import { defaultLibrary, FLOOR_TYPE } from '../../domain'
 import { createDefaultSkins } from '../default-skins'
 import { placeholderSkin } from '../skins'
-import { ICON_FOR_TYPE, ICONS, iconSkin } from './index'
+import { CELL } from '../geometry'
+import { ICON_FOR_TYPE, ICONS, iconSkin, MAX_ICON_CELLS } from './index'
 
 describe('vendored icons', () => {
   it('every icon file parses to at least one shape', () => {
@@ -40,6 +41,14 @@ describe('iconSkin', () => {
     const scale = (48 * 0.72) / 24
     expect(icon.getAttribute('transform')).toBe(`translate(${-48 * 0.36} ${-48 * 0.36}) scale(${scale})`)
     expect(icon.getAttribute('style')).toBe(`stroke-width: calc(var(--item-stroke) / ${scale})`)
+  })
+
+  it('stops growing the icon past MAX_ICON_CELLS, while the outline keeps going', () => {
+    const big = 4 * CELL
+    const g = iconSkin(ICONS.get('bed-double')!)(ctx(big, big))
+    const scale = (MAX_ICON_CELLS * CELL * 0.72) / 24
+    expect(g.querySelector('.icon')!.getAttribute('transform')).toContain(`scale(${scale})`)
+    expect(g.querySelector('.footprint')!.getAttribute('width')).toBe(String(big - 8))
   })
 
   it('outlines the full footprint', () => {

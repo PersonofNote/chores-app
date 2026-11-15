@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { Item, Room } from '../../domain'
-import { check, propose, resizeRect } from './drag'
+import { check, propose, resizeItem, resizeRect } from './drag'
 
 const home = { gridSize: { w: 10, h: 8 } }
 const a: Room = { id: 'a', homeId: 'h', name: 'A', cells: [{ x: 0, y: 0, w: 4, h: 4 }] }
@@ -49,5 +49,37 @@ describe('propose + check', () => {
   it('moving an item into another room changes its room', () => {
     const c = check(home, [a, b], [bed], propose({ kind: 'move-item', item: bed }, 5, 0))
     expect(c.ok && c.proposal.items[0]!.roomId).toBe('b')
+  })
+})
+
+describe('resizing an item', () => {
+  const sofa: Item = { ...bed, id: 'sofa', size: { w: 2, h: 1 } }
+
+  it('grows from a corner, keeping the opposite corner', () => {
+    expect(resizeItem(bed, 'se', 1, 1)).toMatchObject({ cell: { x: 1, y: 1 }, size: { w: 3, h: 3 } })
+    expect(resizeItem(bed, 'nw', -1, 0)).toMatchObject({ cell: { x: 0, y: 1 }, size: { w: 3, h: 2 } })
+  })
+
+  it('works on what you see when the item is turned (size stays unrotated)', () => {
+    // A 2 × 1 sofa turned 90° covers 1 × 2; dragging its bottom edge down makes it 1 × 3 on
+    // screen, which is a 3 × 1 sofa turned.
+    const turned = { ...sofa, rotation: 90 as const }
+    expect(resizeItem(turned, 'se', 0, 1)).toMatchObject({ cell: { x: 1, y: 1 }, size: { w: 3, h: 1 }, rotation: 90 })
+  })
+
+  it('never shrinks below 1 × 1', () => {
+    expect(resizeItem(bed, 'se', -5, -5).size).toEqual({ w: 1, h: 1 })
+  })
+
+  it('cannot grow into another item or through a wall', () => {
+    const plant: Item = { ...bed, id: 'plant', cell: { x: 3, y: 3 }, size: { w: 1, h: 1 } }
+    expect(check(home, [a, b], [bed, plant], propose({ kind: 'resize-item', item: bed, corner: 'se' }, 1, 1))).toEqual({
+      ok: false,
+      problem: { kind: 'overlaps-item', itemId: 'plant' },
+    })
+    expect(check(home, [a, b], [bed], propose({ kind: 'resize-item', item: bed, corner: 'se' }, 2, 0))).toEqual({
+      ok: false,
+      problem: { kind: 'outside-room' },
+    })
   })
 })

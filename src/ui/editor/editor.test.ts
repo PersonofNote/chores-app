@@ -1,6 +1,7 @@
 // @vitest-environment happy-dom
 import { afterEach, describe, expect, it } from 'vitest'
 import type { Repository } from '../../storage'
+import { CELL } from '../../render/geometry'
 import { testApp } from '../test-app'
 
 let repo: Repository | undefined
@@ -136,6 +137,34 @@ describe('Editor', () => {
     a.editor.select({ kind: 'room', roomId: bed.roomId, rectIndex: 0 })
     expect(a.editor.claims(press(a.map.layers.ui.querySelector('.handle-dot')!))).toBe(true)
     expect(a.editor.claims(press(a.map.layers.floor.querySelector(`.room-floor[data-room-id="${bed.roomId}"] rect`)!))).toBe(true)
+  })
+
+  it('resizes a selected item by dragging a corner handle', async () => {
+    const a = await app()
+    const bed = a.itemOf('bed') // 2 × 2 at (1, 1) in the 5 × 5 bedroom; a plant sits at (4, 4)
+    a.editor.select({ kind: 'item', itemId: bed.id })
+    const handles = a.map.layers.ui.querySelectorAll('.editor-overlay .handle')
+    expect(handles).toHaveLength(4)
+    const se = a.map.layers.ui.querySelector('.editor-overlay .handle[data-corner="se"] .handle-hit')!
+    expect(a.editor.claims({ target: se } as unknown as PointerEvent)).toBe(true)
+
+    const fire = (el: Element, type: string, x: number, y: number) =>
+      el.dispatchEvent(new PointerEvent(type, { bubbles: true, pointerId: 1, button: 0, clientX: x, clientY: y }))
+    // The test view is 1:1, so one cell is CELL px; start at the bed's bottom-right corner.
+    const start = (1 + 2) * CELL
+    fire(se, 'pointerdown', start, start)
+    fire(a.map.root, 'pointermove', start + CELL, start + CELL)
+    fire(a.map.root, 'pointerup', start + CELL, start + CELL)
+    await a.settle()
+    expect(a.store.item(bed.id)).toMatchObject({ cell: { x: 1, y: 1 }, size: { w: 3, h: 3 } })
+
+    // One more cell would cover the plant: nothing is saved.
+    const corner = a.map.layers.ui.querySelector('.editor-overlay .handle[data-corner="se"] .handle-hit')!
+    fire(corner, 'pointerdown', start + CELL, start + CELL)
+    fire(a.map.root, 'pointermove', start + 2 * CELL, start + 2 * CELL)
+    fire(a.map.root, 'pointerup', start + 2 * CELL, start + 2 * CELL)
+    await a.settle()
+    expect(a.store.item(bed.id)!.size).toEqual({ w: 3, h: 3 })
   })
 
   it('reports layout problems instead of saving them', async () => {

@@ -4,6 +4,7 @@
  *
  * To add an icon: copy the SVG into ./lucide/, then map the item type below.
  */
+import { CELL } from '../geometry'
 import { svg } from '../svg'
 import type { SkinRegistry, SkinRenderer } from '../skins'
 import { parseIcon, type IconShape } from './parse'
@@ -32,12 +33,17 @@ export const ICON_FOR_TYPE: Readonly<Record<string, string>> = {
   closet: 'shirt',
   counter: 'spray-can',
   dresser: 'archive',
+  table: 'utensils',
+  desk: 'lamp-desk',
+  chair: 'armchair',
 }
 
 /** Icon source grid: Lucide draws on 24 × 24. */
 const ICON_GRID = 24
 /** Share of the footprint's shorter side the icon fills. */
 const ICON_FILL = 0.72
+/** Largest icon, in cells: a resized 4 × 4 bed gets a big outline, not a giant icon. */
+export const MAX_ICON_CELLS = 2
 /** Inset of the footprint outline from the cell edges, in user units. */
 const FOOTPRINT_INSET = 4
 
@@ -50,7 +56,7 @@ const FOOTPRINT_INSET = 4
  */
 export function iconSkin(shapes: readonly IconShape[]): SkinRenderer {
   return ({ width, height }) => {
-    const size = Math.min(width, height) * ICON_FILL
+    const size = Math.min(width, height, MAX_ICON_CELLS * CELL) * ICON_FILL
     const scale = size / ICON_GRID
     return svg('g', { class: 'skin-icon' }, [
       svg('rect', {
