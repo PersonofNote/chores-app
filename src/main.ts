@@ -9,7 +9,11 @@ if (import.meta.env.PROD) {
 }
 
 const root = document.querySelector<HTMLElement>('#app')!
-startApp(root).catch((err: unknown) => {
+// Dev only: `?art` shows the art gallery instead of the app.
+const start = import.meta.env.DEV && new URLSearchParams(location.search).has('art')
+  ? import('./dev/art-gallery').then((m) => m.showArtGallery(root))
+  : startApp(root)
+start.catch((err: unknown) => {
   console.error(err)
   const msg = document.createElement('p')
   msg.className = 'empty-state'

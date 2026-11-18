@@ -6,7 +6,7 @@
  */
 import { CELL } from '../geometry'
 import { svg } from '../svg'
-import type { SkinRegistry, SkinRenderer } from '../skins'
+import { footprintRect, type SkinRegistry, type SkinRenderer } from '../skins'
 import { parseIcon, type IconShape } from './parse'
 
 const files = import.meta.glob<string>('./lucide/*.svg', { query: '?raw', import: 'default', eager: true })
@@ -46,8 +46,6 @@ const ICON_GRID = 24
 const ICON_FILL = 0.72
 /** Largest icon, in cells: a resized 4 × 4 bed gets a big outline, not a giant icon. */
 export const MAX_ICON_CELLS = 2
-/** Inset of the footprint outline from the cell edges, in user units. */
-const FOOTPRINT_INSET = 4
 
 /**
  * Draws the icon centered in the item's footprint, plus a faint footprint outline
@@ -61,14 +59,7 @@ export function iconSkin(shapes: readonly IconShape[]): SkinRenderer {
     const size = Math.min(width, height, MAX_ICON_CELLS * CELL) * ICON_FILL
     const scale = size / ICON_GRID
     return svg('g', { class: 'skin-icon' }, [
-      svg('rect', {
-        class: 'footprint',
-        x: -width / 2 + FOOTPRINT_INSET,
-        y: -height / 2 + FOOTPRINT_INSET,
-        width: width - 2 * FOOTPRINT_INSET,
-        height: height - 2 * FOOTPRINT_INSET,
-        rx: 8,
-      }),
+      svg('rect', { class: 'footprint', ...footprintRect(width, height) }),
       svg(
         'g',
         {

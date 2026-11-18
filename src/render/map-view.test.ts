@@ -85,6 +85,61 @@ describe('MapView', () => {
     expect(map.layers.items.querySelectorAll('.skin-placeholder').length).toBeGreaterThan(0)
   })
 
+  it('draws a decay overlay per item that follows its stage', () => {
+    const { map } = mounted()
+    const overlays = [...map.layers.decay.querySelectorAll<SVGGElement>('.decay-overlay')]
+    expect(overlays).toHaveLength(map.layers.items.querySelectorAll('.item').length)
+    const neglected = overlays.find((o) => o.dataset.stage === 'neglected')!
+    expect(neglected.querySelectorAll('.decay-cobweb')).toHaveLength(2)
+    const id = neglected.dataset.itemId!
+    expect(neglected.getAttribute('transform')).toBe(map.itemGroup(id)!.getAttribute('transform'))
+  })
+
+  it('keeps the same dust when the house is rebuilt', () => {
+    const { map, house } = mounted()
+    const id = house.items.find((i) => i.type === 'bed')!.id
+    const dust = () => map.layers.decay.querySelector(`[data-item-id="${id}"]`)!.innerHTML
+    const before = dust()
+    map.setHouse(house)
+    expect(dust()).toBe(before)
+  })
+
+  it('re-renders a stage-aware skin only when its stage changes', () => {
+    const { house, clock } = demo()
+    const calls: string[] = []
+    const skins = new SkinRegistry()
+      .register('bed.icon', ({ stage }) => (calls.push(`bed:${stage}`), svg('g')), { stageAware: true })
+      .register('sofa.icon', ({ stage }) => (calls.push(`sofa:${stage}`), svg('g')))
+    const map = new MapView(skins)
+    map.setHouse(house)
+    const bedBody = map.itemBody(house.items.find((i) => i.type === 'bed')!.id)
+    const status = () => computeHouseStatus(house, { now: clock.now() })
+    map.setStatus(status(), { palette: LIGHT_PALETTE })
+    const afterFirst = calls.length
+    map.setStatus(status(), { palette: LIGHT_PALETTE })
+    expect(calls).toHaveLength(afterFirst)
+    clock.advanceDays(400)
+    map.setStatus(status(), { palette: LIGHT_PALETTE })
+    expect(calls.slice(afterFirst)).toEqual(['bed:neglected'])
+    expect(map.itemBody(house.items.find((i) => i.type === 'bed')!.id)).toBe(bedBody)
+    // A rebuild draws it at its known stage straight away.
+    calls.length = 0
+    map.setHouse(house)
+    expect(calls).toContain('bed:neglected')
+  })
+
+  it('outlines art skins over the art, and not line skins', () => {
+    const skins = new SkinRegistry().register('bed.quilt', () => svg('g', { class: 'quilt' }), { outline: true })
+    const { house } = demo()
+    const bed = house.items.find((i) => i.type === 'bed')!
+    const map = new MapView(skins)
+    map.setHouse({ ...house, items: house.items.map((i) => (i.id === bed.id ? { ...i, skin: 'bed.quilt' } : i)) })
+    const body = map.itemBody(bed.id)!
+    expect([...body.children].map((c) => c.getAttribute('class'))).toEqual(['quilt', 'item-outline'])
+    expect(map.itemGroup(bed.id)!.classList.contains('item-art')).toBe(true)
+    expect(map.layers.items.querySelectorAll('.item-outline')).toHaveLength(1)
+  })
+
   it('labels rooms', () => {
     const { map, house } = mounted()
     expect([...map.layers.ui.querySelectorAll('.room-label')].map((t) => t.textContent)).toEqual(

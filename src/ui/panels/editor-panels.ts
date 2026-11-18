@@ -58,6 +58,24 @@ export function libraryPickerBody(
   ])
 }
 
+/** One tile per look for an item's type, the current one marked. */
+export function lookPickerBody(
+  looks: readonly { key: string; label: string }[],
+  current: string,
+  renderPreview: (key: string) => SVGSVGElement,
+  onPick: (key: string) => void,
+): HTMLElement {
+  return el('div', { className: 'sheet-body' }, [
+    el('div', { className: 'picker' }, looks.map(({ key, label }) => {
+      const b = button('', () => onPick(key), 'picker-tile')
+      b.append(renderPreview(key), el('span', { text: label }))
+      b.setAttribute('aria-label', label)
+      b.setAttribute('aria-pressed', String(key === current))
+      return b
+    })),
+  ])
+}
+
 export interface HouseSettings {
   name: string
   width: number

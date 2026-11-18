@@ -1,14 +1,16 @@
 // @vitest-environment happy-dom
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { Repository } from '../../storage'
 import { CELL } from '../../render/geometry'
+import { SkinRegistry } from '../../render/skins'
+import { svg } from '../../render/svg'
 import { testApp } from '../test-app'
 
 let repo: Repository | undefined
 afterEach(() => repo?.close())
 
-async function app() {
-  const a = await testApp()
+async function app(opts: Parameters<typeof testApp>[0] = {}) {
+  const a = await testApp(opts)
   repo = a.repo
   // Room to grow: the demo house fills its 14 × 10 grid.
   await a.store.updateHome({ ...a.store.house.home, gridSize: { w: 20, h: 10 } })
@@ -94,8 +96,8 @@ describe('Editor', () => {
 
     a.click('Delete')
     a.click('Delete')
-    await a.settle()
-    expect(a.store.house.rooms.some((r) => r.id === kitchen.id)).toBe(false)
+    // Wait for the result, not a fixed time: the cascade is a real (fake-IndexedDB) write.
+    await vi.waitFor(() => expect(a.store.house.rooms.some((r) => r.id === kitchen.id)).toBe(false))
     expect(a.editor.selected).toBeNull()
   })
 
@@ -176,8 +178,7 @@ describe('Editor', () => {
     expect(input().placeholder).toBe('Bed')
     input().value = 'Guest bed'
     a.click('Save')
-    await a.settle()
-    expect(a.store.item(bed.id)?.name).toBe('Guest bed')
+    await vi.waitFor(() => expect(a.store.item(bed.id)?.name).toBe('Guest bed'))
     expect(a.ui.sheet()).toBeNull()
     expect(a.overlay.querySelector('.toolbar-label strong')?.textContent).toBe('Guest bed')
     expect(a.map.layers.ui.querySelector(`.hit[data-item-id="${bed.id}"]`)?.getAttribute('aria-label')).toBe('Guest bed')
@@ -186,8 +187,49 @@ describe('Editor', () => {
     expect(input().value).toBe('Guest bed')
     input().value = ''
     a.click('Save')
+    await vi.waitFor(() => expect(a.overlay.querySelector('.toolbar-label strong')?.textContent).toBe('Bed'))
+  })
+
+  it('picks a look for an item: saved, redrawn, and new items start on the first art look', async () => {
+    const skins = new SkinRegistry()
+      .register('bed.icon', () => svg('g', { class: 'bed-icon' }))
+      .register('bed.quilt', () => svg('g', { class: 'bed-quilt' }), { outline: true })
+      .register('sofa.icon', () => svg('g'))
+    const a = await app({ skins })
+    const bed = a.itemOf('bed')
+    expect(a.map.itemBody(bed.id)!.querySelector('.bed-icon')).not.toBeNull()
+
+    // Only types with more than one look get the button.
+    a.editor.select({ kind: 'item', itemId: a.itemOf('sofa').id })
+    expect(() => a.click('Look')).toThrow()
+
+    a.editor.select({ kind: 'item', itemId: bed.id })
+    a.click('Look')
+    const tiles = [...a.ui.sheet()!.querySelectorAll<HTMLButtonElement>('.picker-tile')]
+    expect(tiles.map((t) => [t.getAttribute('aria-label'), t.getAttribute('aria-pressed')])).toEqual([
+      ['Quilt', 'false'],
+      ['Simple icon', 'true'],
+    ])
+    tiles[0]!.click()
+    await vi.waitFor(() => expect(a.store.item(bed.id)?.skin).toBe('bed.quilt'))
+    expect(a.map.itemBody(bed.id)!.querySelector('.bed-quilt')).not.toBeNull()
+    expect(a.map.itemBody(bed.id)!.querySelector('.item-outline')).not.toBeNull()
+
+    a.editor.select({ kind: 'room', roomId: a.roomOf('Bedroom').id, rectIndex: 0 })
+    a.click('Add item')
+    a.overlay.querySelector<HTMLButtonElement>('.picker-tile[aria-label="Bed"]')?.click()
     await a.settle()
-    expect(a.overlay.querySelector('.toolbar-label strong')?.textContent).toBe('Bed')
+    const added = a.store.house.items.filter((i) => i.type === 'bed' && i.id !== bed.id)
+    expect(added.map((i) => i.skin)).toEqual(['bed.quilt'])
+  })
+
+  it('a selected room offers its floor chores', async () => {
+    const a = await app()
+    const bedroom = a.roomOf('Bedroom')
+    a.editor.select({ kind: 'room', roomId: bedroom.id, rectIndex: 0 })
+    a.click('Floor chores')
+    expect(a.ui.sheet()!.querySelector('h2')?.textContent).toBe('Bedroom floor')
+    expect(a.ui.sheet()!.textContent).toMatch(/Vacuum|Mop/)
   })
 
   it('reports layout problems instead of saving them', async () => {

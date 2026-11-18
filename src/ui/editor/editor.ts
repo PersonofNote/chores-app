@@ -42,7 +42,7 @@ import { button, el, type SheetHost } from '../components/sheet'
 import type { Toaster } from '../components/toast'
 import type { Gesture } from '../gestures'
 import { openItemRename } from '../item-name'
-import { confirmBody, libraryPickerBody, roomNameBody } from '../panels/editor-panels'
+import { confirmBody, libraryPickerBody, lookPickerBody, roomNameBody } from '../panels/editor-panels'
 import { seedPrompt } from '../panels/seed-prompt'
 import { screenToContent, type ViewState } from '../viewport-math'
 import { check, CORNERS, propose, type Corner, type DragTarget, type Proposal } from './drag'
@@ -209,12 +209,12 @@ export class Editor {
     if (!room) return this.say('Add a room first.')
     sheets.open({
       title: `Add to ${room.name}`,
-      body: libraryPickerBody(defaultLibrary, (type) => this.iconPreview(type), (type) => {
+      body: libraryPickerBody(defaultLibrary, (type) => this.preview(type, this.deps.skins.defaultSkin(type)), (type) => {
         sheets.close()
         const size = defaultLibrary.items[type]!.size
         const cell = findItemSpot(store.house.home, store.house.rooms, store.house.items, room, size)
         if (!cell) return this.say(`No free space in ${room.name} for that. Make the room bigger or move things.`)
-        const item: Item = { id: this.deps.newId(), roomId: room.id, type, skin: `${type}.icon`, cell, size, rotation: 0 }
+        const item: Item = { id: this.deps.newId(), roomId: room.id, type, skin: this.deps.skins.defaultSkin(type), cell, size, rotation: 0 }
         const tasks = createDefaultTasks(item.id, type, this.deps.newId)
         this.run(async () => {
           const placed = await store.addItem(item, tasks)
@@ -295,6 +295,24 @@ export class Editor {
     openItemRename(this.deps, itemId, {
       saved: () => this.deps.sheets.close(),
       failed: (err) => this.failed(err),
+    })
+  }
+
+  /** Picks how an item looks, among its type's skins. */
+  chooseLook(itemId: Id): void {
+    const item = this.deps.store.item(itemId)
+    if (!item) return
+    const { skins, sheets } = this.deps
+    const current = skins.skinFor(item).key
+    sheets.open({
+      title: 'Look',
+      subtitle: itemName(item),
+      body: lookPickerBody(skins.skinsFor(item.type), current, (key) => this.preview(item.type, key, item.size), (key) => {
+        sheets.close()
+        const latest = this.deps.store.item(itemId)
+        if (!latest || key === current) return
+        this.run(() => this.deps.store.updateLayout([], [{ ...latest, skin: key }]))
+      }),
     })
   }
 
@@ -505,9 +523,12 @@ export class Editor {
     } else if (sel.kind === 'room') {
       const room = this.room(sel.roomId)
       if (!room) return
+      const floor = store.itemsInRoom(room.id).find(isFloorItem)
+      const editChores = this.deps.editChores
       bar(room.name, 'Drag to move · drag corners to resize', [
         button('Add item', () => this.addItem(), 'bar-button primary'),
         button('Rename', () => this.renameRoom(room.id), 'bar-button'),
+        ...(floor && editChores ? [button('Floor chores', () => editChores(floor.id), 'bar-button')] : []),
         button('Add section', () => this.addSection(room.id), 'bar-button'),
         ...(room.cells.length > 1 ? [button('Remove section', () => this.removeSection(room.id, sel.rectIndex), 'bar-button')] : []),
         button('Delete', () => this.deleteRoom(room.id), 'bar-button danger'),
@@ -519,16 +540,22 @@ export class Editor {
         ...(this.deps.editChores ? [button('Chores', () => this.deps.editChores!(item.id), 'bar-button')] : []),
         button('Rename', () => this.renameItem(item.id), 'bar-button'),
         button('Rotate', () => this.rotateItem(item.id), 'bar-button'),
+        ...(this.deps.skins.skinsFor(item.type).length > 1 ? [button('Look', () => this.chooseLook(item.id), 'bar-button')] : []),
         button('Delete', () => this.deleteItem(item.id), 'bar-button danger'),
       ])
     }
   }
 
-  private iconPreview(type: string): SVGSVGElement {
-    const size = 40
-    const item: Item = { id: '', roomId: '', type, skin: `${type}.icon`, cell: { x: 0, y: 0 }, size: { w: 1, h: 1 }, rotation: 0 }
-    const art = this.deps.skins.resolve(item)({ item, width: size, height: size, label: itemTypeLabel(type) })
-    const root = svg('svg', { class: 'picker-icon', viewBox: `${-size / 2} ${-size / 2} ${size} ${size}`, 'aria-hidden': 'true' }, [art])
+  /**
+   * A skin drawn for a picker tile. Library tiles use one cell; Look tiles use the
+   * item's own footprint, so a long counter previews long.
+   */
+  private preview(type: string, skin: string, size = { w: 1, h: 1 }): SVGSVGElement {
+    const item: Item = { id: '', roomId: '', type, skin, cell: { x: 0, y: 0 }, size, rotation: 0 }
+    const width = size.w * CELL
+    const height = size.h * CELL
+    const art = this.deps.skins.resolve(item)({ item, width, height, label: itemTypeLabel(type), stage: 'unknown' })
+    const root = svg('svg', { class: 'picker-icon', viewBox: `${-width / 2} ${-height / 2} ${width} ${height}`, 'aria-hidden': 'true' }, [art])
     root.style.setProperty('--item-stroke', '2')
     return root
   }

@@ -21,7 +21,7 @@ export function memoryStorage(): Pick<Storage, 'getItem' | 'setItem'> {
   return { getItem: (k) => values.get(k) ?? null, setItem: (k, v) => void values.set(k, v) }
 }
 
-export async function testApp(opts: { extraTasks?: (data: ReturnType<typeof buildDemoHouse>) => Task[]; backup?: Partial<BackupService> } = {}) {
+export async function testApp(opts: { extraTasks?: (data: ReturnType<typeof buildDemoHouse>) => Task[]; backup?: Partial<BackupService>; skins?: SkinRegistry } = {}) {
   const clock = fixedClock('2026-06-01T08:00:00.000Z')
   const newId = sequentialIds('t')
   const demo = buildDemoHouse(clock, newId)
@@ -31,7 +31,8 @@ export async function testApp(opts: { extraTasks?: (data: ReturnType<typeof buil
   const house = (await repo.loadHouse(demo.homes![0]!.id))!
   const store = new HouseStore(repo, house, { clock, newId })
 
-  const map = new MapView(new SkinRegistry())
+  const skins = opts.skins ?? new SkinRegistry()
+  const map = new MapView(skins)
   map.setHouse(house)
   const overlay = document.createElement('div')
   document.body.replaceChildren(map.root, overlay)
@@ -55,7 +56,7 @@ export async function testApp(opts: { extraTasks?: (data: ReturnType<typeof buil
   })
   const editor = new Editor({
     store, map, overlay, sheets, toaster, view, render, clock, newId,
-    skins: new SkinRegistry(),
+    skins,
     random: () => 0.5,
     openSettings: () => settings.open(),
     editChores,

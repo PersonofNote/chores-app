@@ -33,6 +33,7 @@ describe('iconSkin', () => {
     width: w,
     height: h,
     label: 'Bed',
+    stage: 'unknown' as const,
   })
 
   it('fits the icon to the shorter side and compensates stroke width for the scale', () => {

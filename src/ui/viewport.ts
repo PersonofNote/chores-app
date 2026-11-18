@@ -6,9 +6,11 @@
  * still reach them (M6 builds tap and long-press on top of this).
  */
 import type { Point, Rect } from '../render/geometry'
-import { fitTo, panBy, toSvgTransform, zoomAt, type ScaleLimits, type ViewState } from './viewport-math'
+import { fitTo, keepInView, panBy, toSvgTransform, zoomAt, type ScaleLimits, type ViewState } from './viewport-math'
 
 export const DRAG_THRESHOLD = 6
+/** How much of the house (CSS px, per axis) always stays on screen. */
+export const KEEP_VISIBLE_PX = 64
 
 export interface ViewportOptions {
   limits?: ScaleLimits
@@ -59,7 +61,9 @@ export class ViewportController {
     on('wheel', (e) => this.onWheel(e), false)
 
     this.resizeObserver = new ResizeObserver(() => {
-      if (!this.userMoved) this.fit()
+      // A resize (e.g. rotating the phone) can't strand the house off screen either.
+      if (this.userMoved) this.set(this.state)
+      else this.fit()
     })
     this.resizeObserver.observe(surface)
   }
@@ -80,7 +84,13 @@ export class ViewportController {
     this.resizeObserver.disconnect()
   }
 
+  /** Every pan and zoom goes through here, so the house can't be lost off screen. */
   private set(next: ViewState): void {
+    const { width, height } = this.surface.getBoundingClientRect()
+    const bounds = this.getBounds()
+    if (width > 0 && height > 0 && bounds.w > 0 && bounds.h > 0) {
+      next = keepInView(next, bounds, { w: width, h: height }, KEEP_VISIBLE_PX)
+    }
     this.state = next
     this.target.setAttribute('transform', toSvgTransform(next))
     this.onChange?.(next)

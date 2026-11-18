@@ -145,6 +145,46 @@ Known follow-ups found in M7:
 - [x] Name items: optional `Item.name` ("Armoire", "Guest bed"), falling back to the type's
   label (`itemName`). Rename from the editor's item toolbar or the details sheet
   (`ui/item-name.ts`); floors keep "Kitchen floor"
+- [x] The house can't be panned or zoomed fully off screen: at least 64 px of it (all of it, if
+  smaller) stays visible on each axis (`keepInView` in `ui/viewport-math.ts`), also after a
+  resize such as rotating the phone
+- [x] Floor chores are easy to reach: "Floor chores" on a selected room in the editor, and
+  long-press on a room's name (as well as on empty floor) opens the floor's details
+
+## Art stage, step 1: seams for hand-drawn art (any style)
+Plan: art seams first, then a small style test (bed, counter, plant), then items one at a time.
+- [x] Decay overlays (`render/decay-overlays.ts`): dust at Due soon; more dust, grime and a
+  corner cobweb at Overdue; a second cobweb at Neglected. Seeded by item id, cumulative, drawn
+  once into the `decay` layer and revealed by CSS from `data-stage`, so they fade both ways
+- [x] Skin contract v2 (`render/skins.ts`): `SkinContext.stage`; skins register with
+  `stageAware` (re-rendered in the stable body when the stage changes) and `outline` (the map
+  draws the footprint outline in the decay color over the art)
+- [x] Art loading (`render/art/`): `src/render/art/<type>/<look>.svg` registers skin
+  `<type>.<look>`; `<look>@overdue.svg` and similar are stage variants. Settings on the root
+  `<svg>` (`data-fit`, `data-caps`, `data-label`). Allowlist parser keeps fills and
+  gradients, prefixes ids, drops guides and editor cruft. PNG/WebP work too, with a sidecar
+  `<look>.json` for size and fit
+- [x] Fit (`render/art/fit.ts`): `contain` keeps the aspect ratio; `segments` keeps the end caps
+  and repeats the middle, falling back to `contain` when the caps don't fit
+- [x] Look picker: "Look" in the editor's item toolbar when a type has more than one skin
+  (`skinsFor`); new items start on the type's first art look (`defaultSkin`)
+- [x] Dev art gallery (`?art`): each look at every stage and at six sizes, one rotated, at 25 or
+  50 px per cell, drawn by the real `MapView`. With no art yet it shows icons
+- [x] Drawing templates (`art/templates/`, `npm run art-templates`): the page is the safe area
+  at the default size, with cell edges, the outline, segment guides and notes on a locked
+  "guides" layer the loader ignores
+- [ ] Step 2, style test: draw bed (`contain`), counter (`segments`), plant (stage variants) in
+  one candidate style; judge in the gallery and on the phone, in both themes. Does it read at
+  25 px per cell? Is decay obvious at a glance? Does it hold up in dark mode? Could you keep
+  drawing it for 25 types?
+- [ ] Step 3: draw items in order of use; floors later as per-room floor textures
+
+Found while checking step 1:
+- Overlays now also show over the line icons (generic by design). At phone zoom an overdue
+  icon gets busy; judge it during the style test, and drop overlays from icon skins if
+  they hurt more than they help.
+- Dark-mode dust is a mid-tone so it reads as dirt on both dark floors and light art; light
+  specks looked like sparkles.
 
 ## M8. Live with it
 - [ ] 8.0 Host it over HTTPS (service workers need it; any static host works, the build uses
@@ -166,8 +206,17 @@ Known follow-ups found in M7:
   are idempotent and an event can never be rewritten.
 - **Decay reaches skins through CSS custom properties** (`--decay-color`, `--item-stroke`) on
   the item group. Skins stroke with `currentColor`, so new art never handles decay.
-- **The `decay` layer exists but is empty in the MVP.** Color lives on the item; the layer is
-  reserved for sprite overlays so adding them later doesn't reorder the stack.
+- **Decay is shown by generic overlays plus a colored outline, never by recoloring art.**
+  Overlays (dust, grime, cobwebs) live in the `decay` layer over every item; art skins get the
+  footprint outline in the decay color, heavier from Overdue, which keeps decay readable
+  without color vision. Line icons still carry the color themselves.
+- **Art is chosen per item through looks** (`<type>.<look>` skins, the editor's Look picker).
+  Icons remain the fallback: a missing look resolves to the type's icon, so art ships one
+  item at a time.
+- **Each look declares how it fits a resized footprint**: `contain` (keep the shape) or
+  `segments` (fixed end caps, repeating middle), on the drawing's root `<svg>`.
+- **Overlay dust is seeded by item id and drawn once per layout**; CSS reveals levels by
+  stage. Same dust every time, and a restore fades it out on the same nodes.
 - **The floor item is never drawn.** Items of type `floor` only drive their room's tint.
 - **Dev builds seed a demo house** into an empty database (`src/dev/demo-house.ts`, excluded
   from production builds). Clear site data in the browser to reset it.

@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { Repository } from '../storage'
 import { testApp } from './test-app'
 
@@ -154,8 +154,8 @@ describe('ChoreEditor', () => {
     a.click('Rename')
     a.type('Item name', 'Guest bed')
     a.click('Save')
-    await a.settle()
-    expect(a.title()).toBe('Guest bed')
+    // Wait for the result, not a fixed time: the save is a real (fake-IndexedDB) write.
+    await vi.waitFor(() => expect(a.title()).toBe('Guest bed'))
     a.click('Edit chores')
     expect(a.title()).toBe('Guest bed')
   })
@@ -164,6 +164,15 @@ describe('ChoreEditor', () => {
     const a = await app()
     a.longPress({ kind: 'floor', roomId: a.bed.roomId })
     expect([...a.ui.sheet()!.querySelectorAll('button')].map((b) => b.textContent)).not.toContain('Rename')
+  })
+
+  it('long-pressing a room name opens its floor, whose chores can be edited', async () => {
+    const a = await app()
+    a.longPress({ kind: 'room-label', roomId: a.bed.roomId })
+    expect(a.title()).toBe('Bedroom floor')
+    a.click('Edit chores')
+    expect(a.title()).toBe('Bedroom floor')
+    expect(a.ui.sheet()!.textContent).toMatch(/Vacuum|Mop/)
   })
 
   it('offers "Add chores" for an item with none', async () => {

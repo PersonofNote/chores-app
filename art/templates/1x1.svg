@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg"
+  xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+  xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+  width="288" height="288" viewBox="0 0 36 36"
+  data-fit="contain" data-label="">
+  <g id="guides" inkscape:label="guides" inkscape:groupmode="layer" sodipodi:insensitive="true">
+    <g fill="none" stroke="#9aa0ad" stroke-width="0.4">
+      <line x1="-6" y1="-6" x2="-6" y2="42"/>
+      <line x1="42" y1="-6" x2="42" y2="42"/>
+      <line x1="-6" y1="-6" x2="42" y2="-6"/>
+      <line x1="-6" y1="42" x2="42" y2="42"/>
+    </g>
+    <g fill="none" stroke="#d0453a" stroke-width="0.6" stroke-dasharray="3 2">
+      <rect x="-2" y="-2" width="40" height="40" rx="8"/>
+    </g>
+    <g font-family="sans-serif" font-size="3.6" fill="#6b7080">
+      <text x="-6" y="50">Template 1 × 1 cells (contain). Draw on the page, in the Art layer.</text>
+      <text x="-6" y="56">The page is the safe area: the map draws the decay outline (red) just outside it.</text>
+      <text x="-6" y="62">Contain: a resized item scales this drawing up or down, keeping its shape.</text>
+      <text x="-6" y="68">Use fills. Keep shapes bold: a cell is about 25 px on a phone.</text>
+      <text x="-6" y="74">Save as src/render/art/&lt;type&gt;/&lt;look&gt;.svg (e.g. bed/quilt.svg), as plain SVG.</text>
+      <text x="-6" y="80">Optional: &lt;look&gt;@overdue.svg (or @due-soon, @neglected) for a stage variant.</text>
+      <text x="-6" y="86">Settings on the root &lt;svg&gt;: data-fit, data-caps, data-label. This guides layer is ignored.</text>
+    </g>
+  </g>
+  <g id="art" inkscape:label="Art" inkscape:groupmode="layer">
+  </g>
+</svg>

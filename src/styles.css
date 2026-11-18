@@ -21,6 +21,10 @@
   --label: #6b7080;
   --text: #2b2e36;
   --wall-width: 4;
+  /* Decay overlays (dust, grime, cobwebs): the same over every skin. */
+  --dust: oklch(0.5 0.035 65);
+  --grime: oklch(0.42 0.05 65 / 0.32);
+  --cobweb: oklch(0.5 0.01 250 / 0.75);
   font-family: system-ui, -apple-system, sans-serif;
 }
 
@@ -39,6 +43,9 @@
     --accent-text: #11201a;
     --shadow: 0 6px 24px rgb(0 0 0 / 0.5);
     --danger: #ef8a80;
+    --dust: oklch(0.64 0.035 70);
+    --grime: oklch(0.72 0.04 75 / 0.26);
+    --cobweb: oklch(0.86 0.01 250 / 0.7);
   }
 }
 
@@ -119,6 +126,33 @@ html, body {
   stroke: currentColor;
   stroke-linecap: round;
   stroke-linejoin: round;
+}
+
+/* Art skins draw fills; the map's outline over them carries decay (color, then weight). */
+.item-outline {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: var(--item-stroke);
+  stroke-opacity: 0.35;
+  transition: stroke-opacity 700ms ease-out;
+}
+
+.item[data-stage="due-soon"] .item-outline,
+.item[data-stage="overdue"] .item-outline,
+.item[data-stage="neglected"] .item-outline { stroke-opacity: 1; }
+
+/* Decay overlays: every level is drawn; the stage reveals levels, so changes fade both ways. */
+.layer-decay { pointer-events: none; }
+.decay-overlay [data-level] { opacity: 0; transition: opacity 700ms ease-out; }
+.decay-overlay[data-stage="due-soon"] [data-level="1"],
+.decay-overlay[data-stage="overdue"] :is([data-level="1"], [data-level="2"]),
+.decay-overlay[data-stage="neglected"] [data-level] { opacity: 1; }
+.decay-dust { fill: var(--dust); }
+.decay-grime { fill: var(--grime); }
+.decay-cobweb { fill: none; stroke: var(--cobweb); stroke-width: 1.4; stroke-linecap: round; }
+
+@media (prefers-reduced-motion: reduce) {
+  .decay-overlay [data-level], .item-outline { transition-duration: 200ms; }
 }
 
 .item text {
@@ -538,6 +572,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
 
 .picker-icon { width: 40px; height: 40px; color: var(--text); overflow: visible; }
 .picker-icon .footprint { display: none; }
+.picker-tile[aria-pressed="true"] { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
 
 .seed-list { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 12px; }
 .seed-row { display: flex; flex-direction: column; gap: 6px; }
@@ -607,3 +642,14 @@ button, input, select, textarea { font: inherit; color: inherit; }
   text-align: center;
   color: var(--label);
 }
+
+/* ---- Dev art gallery (?art) ------------------------------------------------------- */
+
+#app:has(.gallery) { position: static; }
+.gallery { padding: 16px; display: flex; flex-direction: column; gap: 24px; }
+.gallery h1 { margin: 0 0 4px; font-size: 20px; }
+.gallery h2 { margin: 0 0 8px; font-size: 14px; color: var(--label); font-weight: 600; }
+.gallery p { margin: 0 0 8px; color: var(--label); }
+.gallery .chip[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); }
+.map.gallery-map { width: calc(var(--w) * var(--gallery-px, 0.5) * 1px); height: auto; max-width: none; touch-action: auto; }
+.gallery-label { fill: var(--label); font-size: 15px; }

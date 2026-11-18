@@ -11,6 +11,8 @@ Design: `House Decay App — Architecture & Roadmap.md`. Current work: `docs/pha
   screenshot plus console output, for checking rendering changes (`scripts/cdp.mjs` is the
   shared DevTools-protocol helper for such scripts)
 - `npm run icons`: re-render the PNG app icons after editing `public/icons/icon.svg`
+- `npm run art-templates`: regenerate the drawing templates in `art/templates/`
+- `?art` (dev only): art gallery, every look at every stage and several sizes
 - Service worker: only in production builds. Test with `npm run build && npx vite preview`.
   It's generated from `build/sw.template.js` by the plugin in `build/service-worker.ts`
 
@@ -40,4 +42,5 @@ Design: `House Decay App — Architecture & Roadmap.md`. Current work: `docs/pha
   DOM tests opt in with `// @vitest-environment happy-dom`.
 - Icons are vendored Lucide SVGs in `src/render/icons/lucide/` (see its README to add one).
 - Map styling: skins stroke with `currentColor` and `var(--item-stroke)`; never set decay
-  colors inside a skin.
+  colors inside a skin. Art skins (`src/render/art/<type>/<look>.svg`) keep their own fills;
+  decay shows through the map's outline and overlays, never by recoloring art.

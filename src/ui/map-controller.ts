@@ -5,8 +5,8 @@
  *   item, 1 chore       complete, with Undo toast             details + history
  *   item, 2–5 chores    ring of chores around the item        details + history
  *   item, 6+ chores     list sheet                            details + history
- *   empty floor         floor chores (ring at the tap point)  floor history
- *   room label          room checklist                        –
+ *   empty floor         floor chores (ring at the tap point)  floor details + history
+ *   room label          room checklist                        floor details + history
  *
  * While the ring is open, a tap anywhere on the map just closes it.
  */
@@ -104,7 +104,8 @@ export class MapController {
       const t = g.target
       this.ring.close()
       if (t.kind === 'item') this.openDetails(t.itemId)
-      else if (t.kind === 'floor') {
+      else {
+        // The floor, or the room's name: both stand for the room's floor chores.
         const floor = this.floorOf(t.roomId)
         if (floor) this.openDetails(floor.id)
       }

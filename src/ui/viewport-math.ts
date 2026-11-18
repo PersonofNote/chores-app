@@ -45,6 +45,27 @@ export function zoomAt(s: ViewState, factor: number, at: Point, limits: ScaleLim
   return { scale, tx: at.x - anchor.x * scale, ty: at.y - anchor.y * scale }
 }
 
+/**
+ * Pans just enough that at least `margin` px of `bounds` stays on screen on each axis
+ * (all of it, if it's smaller), so the house can go nearly off screen but never fully.
+ * Scale is unchanged.
+ */
+export function keepInView(s: ViewState, bounds: Rect, viewport: Size, margin: number): ViewState {
+  const axis = (t: number, start: number, length: number, screen: number) => {
+    const size = length * s.scale
+    const m = Math.min(margin, size, screen)
+    const lo = m - size // the far edge sits m px inside the near side of the screen
+    const hi = screen - m // the near edge sits m px inside the far side
+    const edge = start * s.scale + t
+    return t + Math.min(hi, Math.max(lo, edge)) - edge
+  }
+  return {
+    scale: s.scale,
+    tx: axis(s.tx, bounds.x, bounds.w, viewport.w),
+    ty: axis(s.ty, bounds.y, bounds.h, viewport.h),
+  }
+}
+
 export function panBy(s: ViewState, dx: number, dy: number): ViewState {
   return { ...s, tx: s.tx + dx, ty: s.ty + dy }
 }
